@@ -1,7 +1,7 @@
-__version__ = '0.1.1'
+__version__ = '0.2.0'
 
 from time import sleep
-from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
@@ -636,7 +636,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
             result = decoder.decode_32bit_float()
 
             return result
