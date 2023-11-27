@@ -1,0 +1,46 @@
+{
+    "logging_interval":30,
+    "smax_config":{
+        "smax_server":"192.168.42.1",
+        "smax_port":6379,
+        "smax_db":0,
+        "smax_table":"antenna:0:receiver:wsma:cryostat",
+        "smax_key":"compressor",
+        "smax_power_control_key":"compressor_control",
+        "smax_inverter_freq_control_key":"compressor_control_frequency"
+    },
+    "serial_server":"serial-p2",
+    "compressor":{
+        "ip_address":"192.168.42.12",
+        "port":502,
+        "logged_data":{
+            "enabled":{"type":"int" },
+            "state_code":{"type":"int" },
+            "state":{"type":"str" },
+            "warning_code":{"type":"int" },
+            "warnings":{"type":"str" },
+            "error_code":{"type":"int" },
+            "errors":{"type":"str" },
+            "coolant_in":{"unit":"temp"},
+            "coolant_out":{"unit":"temp"},
+            "oil_temp":{"unit":"temp"},
+            "helium_temp":{"unit":"temp"},
+            "low_pressure":{"unit":"press"},
+            "low_pressure_average":{"unit":"press"},
+            "high_pressure":{"unit":"press"},
+            "high_pressure_average":{"unit":"press"},
+            "delta_pressure_average":{"unit":"press"},
+            "hours":{}
+        }
+    },
+    "inverter":{
+        "port":3,
+        "default_frequency":60,
+        "logged_data":{
+            "frequency":{"unit":"Hz"},
+            "current":{"unit":"A"},
+            "voltage":{"unit":"V"},
+            "power":{"unit":"kW"}
+        }
+    }
+}

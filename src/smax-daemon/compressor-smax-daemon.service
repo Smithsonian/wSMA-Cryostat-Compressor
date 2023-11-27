@@ -1,0 +1,13 @@
+[Unit]
+Description=Compressor SMAX Daemon
+
+[Service]
+Type=notify
+NotifyAccess=all
+Environment=PYTHONUNBUFFERED=1
+KillSignal=SIGINT
+WorkingDirectory=/home/pgrimes/.config/systemd/user/compressor-smax-daemon
+ExecStart=/home/pgrimes/.config/systemd/user/compressor-smax-daemon/on-start.sh
+
+[Install]
+WantedBy=default.target
