@@ -81,6 +81,8 @@ class CompressorSmaxService:
         # The SMAXRedisClient instance
         self.smax_client = None
         
+        self._smax_meta = None
+        
         
         # Log that we managed to create the instance
         self.logger.info('Compressor-SMAX-Daemon instance created')
@@ -229,7 +231,14 @@ class CompressorSmaxService:
         for data in logged_data.keys():
             self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", data, logged_data[data][0])
         self.logger.info(f'Wrote compressor and inverter data to SMAX ')
-            
+        
+        # Write units to smax - once only.
+        if self._smax_meta:
+            for d in logged_data.keys():
+                if logged_data[d][1]:
+                    self.smax_client.smax_push_meta("unit", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
+            self._smax_meta = True
+        
     def compressor_power_control_callback(self, message):
         """Run on a pubsub notification to smax_table:smax_heater_key"""
         date = datetime.datetime.utcfromtimestamp(message.date)
