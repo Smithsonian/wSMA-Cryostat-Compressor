@@ -204,40 +204,45 @@ class CompressorSmaxService:
         self.compressor.update()
         self.inverter.update()
         
-        for data in self._compressor_data.keys():
-            unit = None
-            if "unit" in data.keys():
-                if data["unit"] == "temp":
-                    unit = self.compressor.temp_unit
-                elif data["unit"] == "press":
-                    unit = self.compressor.press_unit
-                else:
-                    unit = data["unit"]
-                
-            reading = self.compressor.__getattribute__(data)
-            logged_data[data] = [reading, unit]
-            self.logger.info(f'Got data for compressor {data}: {reading:.3f} {unit}')
+        # Write units to smax - once only.
+        if self._smax_meta is None:
+            self._smax_meta = {"units":{}}
+            for data in self._config["compressor"]["logged_data"].keys():
+                unit = None
+                if "units" in data.keys():
+                    if data["units"] == "temp":
+                        unit = self.compressor.temp_unit
+                    elif data["units"] == "press":
+                        unit = self.compressor.press_unit
+                    else:
+                        unit = data["units"]
+                self._smax_meta["units"][data] = unit
+            for data in self._config["inverter"]["logged_data"].keys():
+                unit = None
+                if "units" in data.keys():
+                    unit = data["units"]
+                self._smax_meta["units"][data] = unit
             
-        for data in self._inverter_data.keys():
-            unit = None
-            if "unit" in data.keys():
-                unit = data["unit"]
-                
+            for unit in self._smax_meta["units"]:
+                self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
+            self.logger.info("Wrote compressor and inverter metadata to SMAX")
+        
+        # Read the values from the compressor
+        for data in self._compressor_data.keys():
+            reading = self.compressor.__getattribute__(data)
+            logged_data[data] = [reading]
+            self.logger.info(f'Got data for compressor {data}: {reading:.3f}')
+            
+        for data in self._inverter_data.keys():               
             reading = self.inverter.__getattribute__(data)
             logged_data[data] = [reading, unit]
-            self.logger.info(f'Got data for compressor {data}: {reading:.3f} {unit}')
+            self.logger.info(f'Got data for inverter {data}: {reading:.3f}')
             
         # write values to SMAX
         for data in logged_data.keys():
             self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", data, logged_data[data][0])
         self.logger.info(f'Wrote compressor and inverter data to SMAX ')
         
-        # Write units to smax - once only.
-        if self._smax_meta:
-            for d in logged_data.keys():
-                if logged_data[d][1]:
-                    self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
-            self._smax_meta = True
         
     def compressor_power_control_callback(self, message):
         """Run on a pubsub notification to smax_table:smax_heater_key"""

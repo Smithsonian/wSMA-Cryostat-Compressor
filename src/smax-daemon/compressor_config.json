@@ -21,15 +21,15 @@
             "warnings":{"type":"str" },
             "error_code":{"type":"int" },
             "errors":{"type":"str" },
-            "coolant_in":{"unit":"temp"},
-            "coolant_out":{"unit":"temp"},
-            "oil_temp":{"unit":"temp"},
-            "helium_temp":{"unit":"temp"},
-            "low_pressure":{"unit":"press"},
-            "low_pressure_average":{"unit":"press"},
-            "high_pressure":{"unit":"press"},
-            "high_pressure_average":{"unit":"press"},
-            "delta_pressure_average":{"unit":"press"},
+            "coolant_in":{"units":"temp"},
+            "coolant_out":{"units":"temp"},
+            "oil_temp":{"units":"temp"},
+            "helium_temp":{"units":"temp"},
+            "low_pressure":{"units":"press"},
+            "low_pressure_average":{"units":"press"},
+            "high_pressure":{"units":"press"},
+            "high_pressure_average":{"units":"press"},
+            "delta_pressure_average":{"units":"press"},
             "hours":{}
         }
     },
@@ -37,10 +37,10 @@
         "port":3,
         "default_frequency":60,
         "logged_data":{
-            "frequency":{"unit":"Hz"},
-            "current":{"unit":"A"},
-            "voltage":{"unit":"V"},
-            "power":{"unit":"kW"}
+            "frequency":{"units":"Hz"},
+            "current":{"units":"A"},
+            "voltage":{"units":"V"},
+            "power":{"units":"kW"}
         }
     }
 }
