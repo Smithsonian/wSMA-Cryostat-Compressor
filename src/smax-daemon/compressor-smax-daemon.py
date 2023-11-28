@@ -236,7 +236,7 @@ class CompressorSmaxService:
         if self._smax_meta:
             for d in logged_data.keys():
                 if logged_data[d][1]:
-                    self.smax_client.smax_push_meta("unit", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
+                    self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
             self._smax_meta = True
         
     def compressor_power_control_callback(self, message):
