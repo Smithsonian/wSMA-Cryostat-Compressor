@@ -181,6 +181,29 @@ class CompressorSmaxService:
 
         # Run the service's main loop
         self.run()
+        
+    def smax_set_units(self):
+        """Write units to smax - once only."""
+        self._smax_meta = {"units":{}}
+        for data in self._config["compressor"]["logged_data"].keys():
+            unit = None
+            if "units" in data.keys():
+                if data["units"] == "temp":
+                    unit = self.compressor.temp_unit
+                elif data["units"] == "press":
+                    unit = self.compressor.press_unit
+                else:
+                    unit = data["units"]
+            self._smax_meta["units"][data] = unit
+        for data in self._config["inverter"]["logged_data"].keys():
+            unit = None
+            if "units" in data.keys():
+                unit = data["units"]
+            self._smax_meta["units"][data] = unit
+        
+        for d in self._smax_meta["units"]:
+            self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}:{d}", self._smax_meta["units"][d][1])
+        self.logger.info("Wrote compressor and inverter metadata to SMAX")
 
     def run(self):
         """Run the main service loop"""
@@ -204,43 +227,20 @@ class CompressorSmaxService:
         self.compressor.update()
         self.inverter.update()
         
-        # Write units to smax - once only.
-        if self._smax_meta is None:
-            self._smax_meta = {"units":{}}
-            for data in self._config["compressor"]["logged_data"].keys():
-                unit = None
-                if "units" in data.keys():
-                    if data["units"] == "temp":
-                        unit = self.compressor.temp_unit
-                    elif data["units"] == "press":
-                        unit = self.compressor.press_unit
-                    else:
-                        unit = data["units"]
-                self._smax_meta["units"][data] = unit
-            for data in self._config["inverter"]["logged_data"].keys():
-                unit = None
-                if "units" in data.keys():
-                    unit = data["units"]
-                self._smax_meta["units"][data] = unit
-            
-            for unit in self._smax_meta["units"]:
-                self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}", logged_data[d][1])
-            self.logger.info("Wrote compressor and inverter metadata to SMAX")
-        
         # Read the values from the compressor
         for data in self._compressor_data.keys():
             reading = self.compressor.__getattribute__(data)
-            logged_data[data] = [reading]
+            logged_data[data] = reading
             self.logger.info(f'Got data for compressor {data}: {reading:.3f}')
             
         for data in self._inverter_data.keys():               
             reading = self.inverter.__getattribute__(data)
-            logged_data[data] = [reading, unit]
+            logged_data[data] = reading
             self.logger.info(f'Got data for inverter {data}: {reading:.3f}')
             
         # write values to SMAX
         for data in logged_data.keys():
-            self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", data, logged_data[data][0])
+            self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", data, logged_data[data])
         self.logger.info(f'Wrote compressor and inverter data to SMAX ')
         
         
