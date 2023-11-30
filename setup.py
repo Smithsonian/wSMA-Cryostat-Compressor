@@ -58,7 +58,9 @@ setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'pymodbus'
+        'pymodbus',
+	'systemd-python',
+	'retrying'
     ],
     extras_require={
     },
