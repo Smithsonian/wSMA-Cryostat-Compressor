@@ -44,7 +44,7 @@ def main(args=None):
         return None
         # inv = wsma_cryostat_compressor.inverter.Dummy_Inverter()
     else:
-        inv = wsma_cryostat_compressor.inverter.Inverter(port=args.port)
+        inv = wsma_cryostat_compressor.inverter.Inverter(address=args.address, port=args.port)
 
         if args.verbosity:
             inv.verbose = True
