@@ -155,8 +155,9 @@ def _model_code_to_string(model_code):
         model_code: int: the error/warning code returned by the compressor.
     Returns:
         str: Model name."""
-    high_byte = model_code[0]
-    low_byte = model_code[1]
+    model_bytes = model_code.to_bytes(length=4)
+    high_byte = model_bytes[0:2]
+    low_byte = model_bytes[2:4]
     str_return = 'CPA'
     if 1 == high_byte:
         str_return = str_return + '08'
@@ -226,50 +227,50 @@ class Compressor(object):
     The Compressor object wraps a pymodbus.ModbusTcpClient instance which
     communicates with the Compressor Digital Panel over TCP/IP.
     """
-    #: int: address of the controller's operating state register.
+    #: int: address of the controller's operating state register (int).
     _operating_state_addr = 1
 
-    #: int: address of the controller's energized state register.
+    #: int: address of the controller's energized state register (int).
     _enabled_addr = 2
 
-    #: int: address of the controller's warning register.
-    _warning_addr = 3
+    #: int: address of the controller's warning register (int32).
+    _warning_addr = 52
 
-    #: int: address of the controller's alarm/error register.
-    _error_addr = 5
+    #: int: address of the controller's alarm/error register (int32).
+    _error_addr = 54
 
-    #: int: address of the controller's Coolant In Temp(erature) register
-    _coolant_in_addr = 7
+    #: int: address of the controller's Coolant In Temp(erature) register (int, 1/10th unit)
+    _coolant_in_addr = 40
 
-    #: int: address of the controller's Coolant Out Temp(erature) register
-    _coolant_out_addr = 9
+    #: int: address of the controller's Coolant Out Temp(erature) register (int, 1/10th unit)
+    _coolant_out_addr = 41
 
-    #: int: address of the controller's Oil Temp(erature) register
-    _oil_temp_addr = 11
+    #: int: address of the controller's Oil Temp(erature) register (int, 1/10th unit)
+    _oil_temp_addr = 42
 
-    #: int: address of the controller's Helium Temp(erature) register
-    _helium_temp_addr = 13
+    #: int: address of the controller's Helium Temp(erature) register (int, 1/10th unit)
+    _helium_temp_addr = 43
 
-    #: int: address of the controller's Low Pressure register
-    _low_press_addr = 15
+    #: int: address of the controller's Low Pressure register (int, 1/10th unit)
+    _low_press_addr = 44
 
-    #: int: address of the controller's Low Pressure Average register
-    _low_press_avg_addr = 17
+    #: int: address of the controller's Low Pressure Average register (int, 1/10th unit)
+    _low_press_avg_addr = 45
 
-    #: int: address of the controller's High Pressure register
-    _high_press_addr = 19
+    #: int: address of the controller's High Pressure register (int, 1/10th unit)
+    _high_press_addr = 46
 
-    #: int: address of the controller's High Pressure Average register
-    _high_press_avg_addr = 21
+    #: int: address of the controller's High Pressure Average register (int, 1/10th unit)
+    _high_press_avg_addr = 47
 
-    #: int: address of the controller's Delta Pressure Average register
-    _delta_press_avg_addr = 23
+    #: int: address of the controller's Delta Pressure Average register (int, 1/10th unit)
+    _delta_press_avg_addr = 48
 
-    #: int: address of the controller's Motor Current register
-    _motor_current_addr = 25
+    #: int: address of the controller's Motor Current register (int, 1/10th)
+    _motor_current_addr = 49
 
-    #: int: address of the controller's Hours of Operation register
-    _hours_addr = 27
+    #: int: address of the controller's Hours of Operation register (int32, hours)
+    _hours_addr = 50
 
     #: int: address of the controller's Pressure Scale register
     _press_unit_addr = 29
@@ -285,6 +286,18 @@ class Compressor(object):
 
     #: int: address of the controller's Software rev register
     _software_addr = 33
+
+    #: int: address of the remote motor detector RPM (int, 1/100th RPM)
+    _rpm_addr = 34
+
+    #: int: address of the software variant (int)
+    _software_var_addr = 35
+
+    #: int: address of the inverter frequency (int, 1/10th Hz)
+    _inverter_freq_addr = 36
+
+    #: int: address of the inverter current (int, 1/10th Amps)
+    _inverter_curr_addr = 37
 
     #: int: address of the controller's Enable/Disable holding register
     _enable_addr = 1
@@ -370,6 +383,15 @@ class Compressor(object):
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
         self._error_code = 0.0
+
+        # float: Coldhead RPM
+        self._coldhead_rpm = 0.0
+
+        # float: Inverter frequency in Hertz
+        self._inverter_freq = 0.0
+
+        # float: Inverter current in Amps
+        self._inverter_curr = 0.0
 
         # float: Coolant IN temperature in self._temp_units
         self._coolant_in = 0.0
@@ -549,6 +571,18 @@ class Compressor(object):
         return str_return
 
     @property
+    def inverter_freq(self):
+        return self._inverter_freq
+    
+    @property
+    def inverter_curr(self):
+        return self._inverter_curr
+
+    @property
+    def coldhead_rpm(self):
+        return self._coldhead_rpm
+
+    @property
     def coolant_in(self):
         """float: Coolant IN temperature in self.temp_units"""
         return self._coolant_in
@@ -632,7 +666,7 @@ class Compressor(object):
 
         Returns:
             float: Python float read from the register."""
-        r = self._client.read_input_registers(addr, count=2)
+        r = self._client.read_input_registers(addr, count=2, slave=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -641,12 +675,49 @@ class Compressor(object):
 
             return result
 
+    def _read_int32(self, addr):
+        """Read a 32 bit int from adjacent registers on the compressor, and convert
+        the return bytes to a Python int.
+
+        Args:
+            addr (int): Address of the first register to read.
+
+        Returns:
+            int: int float read from the register."""
+        r = self._client.read_input_registers(addr, count=2, slave=1)
+        if r.isError():
+            raise RuntimeError("Could not read register {}".format(addr))
+        else:
+            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
+            result = decoder.decode_32bit_int()
+
+            return result
+        
+    def _read_int(self, addr):
+        """Read a 16 bit int from a registers on the compressor, and convert
+        the return bytes to a Python int.
+
+        Args:
+            addr (int): Address of the first register to read.
+
+        Returns:
+            int: int float read from the register."""
+        r = self._client.read_input_registers(addr, count=1, slave=1)
+        if r.isError():
+            raise RuntimeError("Could not read register {}".format(addr))
+        else:
+            return r.registers[0]
+
+
     def update(self):
         """Read current values from all input registers."""
         self._get_state()
         self._get_enabled()
         self._get_errors()
         self._get_warnings()
+        self._get_inverter_freq()
+        self._get_inverter_curr()
+        self._get_coldhead_rpm()
         self._get_coolant_in()
         self._get_coolant_out()
         self._get_oil_temp()
@@ -681,6 +752,10 @@ class Compressor(object):
                           "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
                           "Errors             : \n {}".format("\n".join(self.errors.split(","))),
                           "",
+                          "Coldhead RPM       : {:.2f} RPM".format(self.coldhead_rpm),
+                          "Inverter Frequency : {:.2f} Hz".format(self.inverter_freq),
+                          "Inverter Current   : {:.2f} Amps".format(self.inverter_curr),
+                          "",
                           "Coolant In         : {:.2f} {}".format(self.coolant_in, self.temp_unit),
                           "Coolant Out        : {:.2f} {}".format(self.coolant_out, self.temp_unit),
                           "Oil Temperature    : {:.2f} {}".format(self.oil_temp, self.temp_unit),
@@ -710,12 +785,8 @@ class Compressor(object):
 
     def _get_state(self):
         """Read the current state of the compressor."""
-        r = self._client.read_input_registers(self._operating_state_addr)
-        if r.isError():
-            raise RuntimeError("Could not get current state")
-        else:
-            self._state = r.registers[0]
-
+        self._state = self._read_int(self._operating_state_addr)
+        
     def get_state(self):
         """Read the current state of the compressor.
 
@@ -726,12 +797,8 @@ class Compressor(object):
 
     def _get_enabled(self):
         """Read the current Enable state of the compressor"""
-        r = self._client.read_input_registers(self._enabled_addr)
-        if r.isError():
-            raise RuntimeError("Could not get current enabled state")
-        else:
-            self._enabled = r.registers[0]
-
+        self._enabled =  self._read_int(self._enabled_addr)
+        
     def get_enabled(self):
         """Read the current Enable state of the compressor.
 
@@ -742,7 +809,7 @@ class Compressor(object):
 
     def _get_warnings(self):
         """Read the current warnings from the compressor."""
-        r = self._read_float32(self._warning_addr)
+        r = self._read_int32(self._warning_addr)
         self._warning_code = r
 
     def get_warnings(self):
@@ -755,7 +822,7 @@ class Compressor(object):
 
     def _get_errors(self):
         """Read the current errors from the compressor."""
-        r = self._read_float32(self._error_addr)
+        r = self._read_int32(self._error_addr)
         self._error_code = r
 
     def get_errors(self):
@@ -765,11 +832,41 @@ class Compressor(object):
             int: error state of the compressor."""
         self._get_errors()
         return self.errors
+    
+    def _get_inverter_freq(self):
+        """Read the inverter frequency"""
+        freq = self._read_int(self._inverter_freq_addr)
+        self._inverter_freq = freq/10.
+
+    def get_inverter_freq(self):
+        """Read and return the inverter frequency"""
+        self._get_inverter_freq()
+        return self._inverter_freq
+
+    def _get_inverter_curr(self):
+        """Read the inverter current"""
+        curr = self._read_int(self._inverter_curr_addr)
+        self._inverter_curr = curr/10.
+
+    def get_inverter_curr(self):
+        """Read and return the inverter current"""
+        self._get_inverter_curr()
+        return self._inverter_curr
+    
+    def _get_coldhead_rpm(self):
+        """Read the coldhead RPM"""
+        rpm = self._read_int(self._rpm_addr)
+        self._coldhead_rpm = rpm/100.
+
+    def get_coldhead_rpm(self):
+        """Read and return the coldhead RPM"""
+        self._get_coldhead_rpm()
+        return self._coldhead_rpm
 
     def _get_coolant_in(self):
         """Read the current coolant inlet temperature."""
-        temp = self._read_float32(self._coolant_in_addr)
-        self._coolant_in = temp
+        temp = self._read_int(self._coolant_in_addr)
+        self._coolant_in = temp/10.
 
     def get_coolant_in(self):
         """Read the current coolant inlet temperature.
@@ -781,8 +878,8 @@ class Compressor(object):
 
     def _get_coolant_out(self):
         """Read the current coolant outlet temperature"""
-        temp = self._read_float32(self._coolant_out_addr)
-        self._coolant_out = temp
+        temp = self._read_int(self._coolant_out_addr)
+        self._coolant_out = temp/10.
 
     def get_coolant_out(self):
         """Read the current coolant outlet temperature.
@@ -794,8 +891,8 @@ class Compressor(object):
 
     def _get_helium_temp(self):
         """Read the current helium temperature."""
-        temp = self._read_float32(self._helium_temp_addr)
-        self._helium_temp = temp
+        temp = self._read_int(self._helium_temp_addr)
+        self._helium_temp = temp/10.
 
     def get_helium_temp(self):
         """Read the current helium temperature.
@@ -807,8 +904,8 @@ class Compressor(object):
 
     def _get_oil_temp(self):
         """Read the current helium temperature."""
-        temp = self._read_float32(self._oil_temp_addr)
-        self._oil_temp = temp
+        temp = self._read_int(self._oil_temp_addr)
+        self._oil_temp = temp/10.
 
     def get_oil_temp(self):
         """Read the current helium temperature.
@@ -820,8 +917,8 @@ class Compressor(object):
 
     def _get_low_pressure(self):
         """Read the current low side pressure."""
-        temp = self._read_float32(self._low_press_addr)
-        self._low_press = temp
+        temp = self._read_int(self._low_press_addr)
+        self._low_press = temp/10.
 
     def get_low_pressure(self):
         """Read the current low side pressure.
@@ -833,8 +930,8 @@ class Compressor(object):
 
     def _get_low_pressure_average(self):
         """Read the current average low side pressure."""
-        temp = self._read_float32(self._low_press_avg_addr)
-        self._low_press_avg = temp
+        temp = self._read_int(self._low_press_avg_addr)
+        self._low_press_avg = temp/10.
 
     def get_low_pressure_average(self):
         """Read the current average low side pressure.
@@ -846,8 +943,8 @@ class Compressor(object):
 
     def _get_high_pressure(self):
         """Read the current high side pressure."""
-        temp = self._read_float32(self._high_press_addr)
-        self._high_press = temp
+        temp = self._read_int(self._high_press_addr)
+        self._high_press = temp/10.
 
     def get_high_pressure(self):
         """Read the current high side pressure.
@@ -859,8 +956,8 @@ class Compressor(object):
 
     def _get_high_pressure_average(self):
         """Read the current average high side pressure."""
-        temp = self._read_float32(self._high_press_avg_addr)
-        self._high_press_avg = temp
+        temp = self._read_int(self._high_press_avg_addr)
+        self._high_press_avg = temp/10.
 
     def get_high_pressure_average(self):
         """Read the current average high side pressure.
@@ -872,8 +969,8 @@ class Compressor(object):
 
     def _get_delta_pressure_average(self):
         """Read the current average pressure delta."""
-        temp = self._read_float32(self._delta_press_avg_addr)
-        self._delta_press_avg = temp
+        temp = self._read_int(self._delta_press_avg_addr)
+        self._delta_press_avg = temp/10.
 
     def get_delta_pressure_average(self):
         """Read the current average pressure delta.
@@ -885,14 +982,13 @@ class Compressor(object):
 
     def _get_motor_current(self):
         """Read the motor current."""
-        temp = self._read_float32(self._motor_current_addr)
-        self._motor_current = temp
+        temp = self._read_int(self._motor_current_addr)
+        self._motor_current = temp/10.
 
     def get_motor_current(self):
         """Read the motor current.
 
         ! This number is known to be garbage on the inverter compressors !
-        Use the RS485 bus on the inverter unit to read the current/voltage/power consumption
 
         Returns:
             float: motor current in Amps"""
@@ -901,8 +997,8 @@ class Compressor(object):
 
     def _get_hours(self):
         """Read the current hours of operation."""
-        temp = self._read_float32(self._hours_addr)
-        self._hours = temp
+        temp = self._read_int32(self._hours_addr)
+        self._hours = temp/10.
 
     def get_hours(self):
         """Read the current hours of operation.
@@ -917,32 +1013,24 @@ class Compressor(object):
 
         Returns:
             int: the pressure scale code."""
-        r = self._client.read_input_registers(self._press_unit_addr)
-        if r.isError():
-            raise RuntimeError("Could not get pressure units")
-        else:
-            self._press_scale = r.registers[0]
-            return self._press_scale
+        self._press_scale = self._read_int(self._press_unit_addr)
+        return self._press_scale
 
     def get_temperature_scale(self):
         """Read the temperature scale.
 
         Returns:
             int: the temperature scale code."""
-        r = self._client.read_input_registers(self._temp_unit_addr)
-        if r.isError():
-            raise RuntimeError("Could not get temperature units")
-        else:
-            self._temp_scale = r.registers[0]
-            return self._temp_scale
+        self._temp_scale  = self._read_int(self._temp_unit_addr)
+        return self._temp_scale
 
     def get_serial(self):
         """Read the model name from the compressor
 
         Returns:
             str: model name from the compressor"""
-        r = self._client.read_input_registers(self._serial_addr)
-        self._serial = r.registers[0]
+        r = self._read_int(self._serial_addr)
+        self._serial = r
         return self.serial
 
     def get_model(self):
@@ -950,8 +1038,8 @@ class Compressor(object):
 
         Returns:
             str: model name from the compressor"""
-        r = self._client.read_input_registers(self._model_addr)
-        model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
+        r = self._read_int(self._model_addr)
+        model = _model_code_to_string(r)
         self._model = model
         return self.model
 
@@ -960,14 +1048,14 @@ class Compressor(object):
 
         Returns:
             str: software revision"""
-        s = self._read_float32(self._software_addr)
-        software = "{:.3f}".format(s)
-        self._software_rev = software
+        s = self._read_int(self._software_addr)
+        v = self._read_int(self._software_var_addr)
+        self._software_rev = f"{s:d}.{v:d}"
         return self.software_rev
 
     def on(self):
         """Turn the compressor on."""
-        w = self._client.write_registers(self._enable_addr, 0x0001)
+        w = self._client.write_registers(self._enable_addr, 0x0001, 1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn on")
         else:
@@ -983,7 +1071,7 @@ class Compressor(object):
 
     def off(self):
         """Turn the compressor off."""
-        w = self._client.write_registers(self._enable_addr, 0x00FF)
+        w = self._client.write_registers(self._enable_addr, 0x00FF, 1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn off")
         else:
