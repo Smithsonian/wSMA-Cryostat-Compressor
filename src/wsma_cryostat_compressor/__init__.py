@@ -233,6 +233,9 @@ class Compressor(object):
     #: int: address of the controller's energized state register (int).
     _enabled_addr = 2
 
+    #: int: address of the inverter set frequency register (int, 1/10th Hz).
+    _inverter_set_freq_addr = 3
+
     #: int: address of the controller's warning register (int32).
     _warning_addr = 52
 
@@ -723,6 +726,7 @@ class Compressor(object):
         self._get_enabled()
         self._get_errors()
         self._get_warnings()
+        self._get_inverter_set_freq()
         self._get_inverter_freq()
         self._get_inverter_curr()
         self._get_coldhead_rpm()
@@ -761,6 +765,7 @@ class Compressor(object):
                           "Errors             : \n {}".format("\n".join(self.errors.split(","))),
                           "",
                           "Coldhead RPM       : {:.2f} RPM".format(self.coldhead_rpm),
+                          "Inverter Set Freq  : {:.2f} Hz".format(self.inverter_set_freq),
                           "Inverter Frequency : {:.2f} Hz".format(self.inverter_freq),
                           "Inverter Current   : {:.2f} Amps".format(self.inverter_curr),
                           "",
@@ -840,6 +845,20 @@ class Compressor(object):
             int: error state of the compressor."""
         self._get_errors()
         return self.errors
+
+    def _get_inverter_set_freq(self):
+        """Read the inverter set frequency"""
+        freq = self._read_int(self._inverter_set_freq_addr)
+        self._inverter_set_freq = freq/10.
+    
+    def get_inverter_freq(self):
+        """Read and return the inverter set frequency"""
+        self._get_inverter_set_freq()
+        return self._inverter_set_freq
+    
+    def set_inverter_freq(self, freq):
+        """Set the inverter frequency"""
+        self._write_int(self._inverter_set_freq_addr, int(freq*10))
     
     def _get_inverter_freq(self):
         """Read the inverter frequency"""
