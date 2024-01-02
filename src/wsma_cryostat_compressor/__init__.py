@@ -572,14 +572,17 @@ class Compressor(object):
 
     @property
     def inverter_freq(self):
+        """float: Inverter frequency in Hz"""
         return self._inverter_freq
     
     @property
     def inverter_curr(self):
+        """float: Inverter current in Amps"""
         return self._inverter_curr
 
     @property
     def coldhead_rpm(self):
+        """float: Coldhead remote motor RPM"""
         return self._coldhead_rpm
 
     @property
