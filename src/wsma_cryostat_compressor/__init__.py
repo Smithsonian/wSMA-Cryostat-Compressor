@@ -571,6 +571,11 @@ class Compressor(object):
         return str_return
 
     @property
+    def inverter_set_freq(self):
+        """float: Inverter set frequency in Hz"""
+        return self._inverter_set_freq
+
+    @property
     def inverter_freq(self):
         """float: Inverter frequency in Hz"""
         return self._inverter_freq
