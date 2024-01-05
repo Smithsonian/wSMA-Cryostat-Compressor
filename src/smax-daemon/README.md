@@ -11,7 +11,7 @@ Service is set up to use `SIGINT` to safely stop the process.  This is caught wi
 Installation as both a user and system service is described in the second tutorial.
 
 Requires:
-systemd-python (in turn requires linux pacakage systemd-devel)
+systemd-python (in turn requires linux packages systemd-devel, gcc, python3-devel)
 psutils
 wSMA-Cryostat-Compressor wsma_cryostat_compressor module
 smax-python

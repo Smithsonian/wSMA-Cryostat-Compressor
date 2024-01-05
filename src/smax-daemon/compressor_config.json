@@ -9,9 +9,9 @@
         "smax_power_control_key":"compressor_control",
         "smax_inverter_freq_control_key":"compressor_control_frequency"
     },
-    "serial_server":"serial-p2",
+    "serial_server":"192.168.1.13",
     "compressor":{
-        "ip_address":"192.168.42.12",
+        "ip_address":"192.168.1.12",
         "port":502,
         "logged_data":{
             "enabled":{"type":"int" },

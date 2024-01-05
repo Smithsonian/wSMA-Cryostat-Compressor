@@ -7,19 +7,17 @@
 # 06/29/2023
 #
 
-INSTALL="$HOME/.config/systemd/user/compressor-smax-daemon"
+SYSDUSER="$HOME/.config/systemd/user"
+INSTALL="$SYSDUSER/compressor-smax-daemon"
 
 mkdir -p $INSTALL
 
 cp "./compressor-smax-daemon.py" $INSTALL
-cp "./compressor-smax-daemon.service" $INSTALL
+cp "./compressor-smax-daemon.service" $SYSDUSER
 cp "./on-start.sh" $INSTALL
 cp "./compressor_config.json" $INSTALL
 
-
 chmod -R 755 $INSTALL
-
-ln -s "$INSTALL/compressor-smax-daemon.service" "$HOME/.config/systemd/user/compressor-smax-daemon.service"
 
 read -p "Enable compressor-smax-daemon at this time? " -n 1 -r
 echo    # (optional) move to a new line
