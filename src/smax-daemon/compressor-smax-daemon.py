@@ -221,9 +221,9 @@ class CompressorSmaxService:
                 reading = self.compressor.__getattribute__(data)
                 logged_data[data] = reading
                 self.logger.info(f'Got data for compressor {data}: {reading}')
-                logged_data['compressor_status'] = "good"
+                logged_data['compressor_comms_status'] = "good"
         else:
-            logged_data['compressor_status'] = "stale"
+            logged_data['compressor_comms_status'] = "stale"
             
         if self.inverter:
             if not inverter_error:
@@ -231,9 +231,9 @@ class CompressorSmaxService:
                     reading = self.inverter.__getattribute__(data)
                     logged_data[data] = reading
                     self.logger.info(f'Got data for inverter {data}: {reading}')
-                    logged_data['inverter_status'] = "good"
+                    logged_data['inverter_comms_status'] = "good"
             else:
-                logged_data['inverter_status'] = "stale"
+                logged_data['inverter_comms_status'] = "stale"
                 
         # write values to SMAX
         for data in logged_data.keys():
