@@ -1,9 +1,9 @@
 import logging
-import os
 import sys
 import time
 import datetime
 import json
+import retrying
 
 import systemd.daemon
 
@@ -24,45 +24,6 @@ def tcpip_address(ip=default_CM4116_IP, port=default_port):
     address = "TCPIP::{:s}::40{:02d}::SOCKET"
     return address.format(ip, port)
 
-
-class CompressorReadout:
-    def __init__(self, compressor, server, port):
-        self._compressor = compressor
-        self._server = server
-        self._port = port
-    
-    @property
-    def ls(self):
-        return self._ls
-    
-    @ls.setter
-    def ls(self, ls):
-        self._ls = ls
-        
-    @property
-    def server(self):
-        return self._server
-
-    @property
-    def port(self):
-        return self._port
-        
-    @property
-    def sensors(self):
-        return self._sensors
-
-    @sensors.setter
-    def sensors(self, sensors):
-        self._sensors = sensors
-        
-    @property
-    def relays(self):
-        return self._relays
-    
-    @relays.setter
-    def relays(self, relays):
-        self._relays = relays
-        
 
 class CompressorSmaxService:
     def __init__(self, config="compressor_config.json"):
@@ -228,22 +189,51 @@ class CompressorSmaxService:
         """Run the code to write logging data to SMAX"""
         # Gather data
         logged_data = {}
+        compressor_error = False
+        inverter_error = False
         
-        self.compressor.update()
-        if self.inverter:
-            self.inverter.update()
-        
-        # Read the values from the compressor
-        for data in self._compressor_data.keys():
-            reading = self.compressor.__getattribute__(data)
-            logged_data[data] = reading
-            self.logger.info(f'Got data for compressor {data}: {reading}')
+        try:
+            self.compressor.update()
+        except:
+            self.logger.warning("Initial attempt at updating compressor failed. Retrying.")
+            time.sleep(0.5)
+            try:
+                self.compressor.update()
+            except:
+                self.logger.error("Could not get update from compressor.")
+                compressor_error = True
             
         if self.inverter:
-            for data in self._inverter_data.keys():
-                reading = self.inverter.__getattribute__(data)
+            try:
+                self.inverter.update()
+            except:
+                self.logger.warning("Initial attempt at updating inverter failed. Retrying.")
+                time.sleep(0.5)
+                try:
+                    self.inverter.update()
+                except:
+                    self.logger.error("Could not get update from inverter.")
+                    inverter_error = True
+        
+        # Read the values from the compressor
+        if not compressor_error:
+            for data in self._compressor_data.keys():
+                reading = self.compressor.__getattribute__(data)
                 logged_data[data] = reading
-                self.logger.info(f'Got data for inverter {data}: {reading}')
+                self.logger.info(f'Got data for compressor {data}: {reading}')
+                logged_data['compressor_status'] = "good"
+        else:
+            logged_data['compressor_status'] = "stale"
+            
+        if self.inverter:
+            if not inverter_error:
+                for data in self._inverter_data.keys():
+                    reading = self.inverter.__getattribute__(data)
+                    logged_data[data] = reading
+                    self.logger.info(f'Got data for inverter {data}: {reading}')
+                    logged_data['inverter_status'] = "good"
+            else:
+                logged_data['inverter_status'] = "stale"
                 
         # write values to SMAX
         for data in logged_data.keys():
@@ -258,8 +248,10 @@ class CompressorSmaxService:
         
         if message.data:
             self.compressor.on()
+            self.logger.info("Turning compressor on")
         else:
             self.compressor.off()
+            self.logger.info("Turning compressor off")
             
     def inverter_freq_control_callback(self, message):
         """Run on a pubsub notification to smax_table:smax_heater_key"""
@@ -270,6 +262,7 @@ class CompressorSmaxService:
         
         if freq >= 40.0 and freq <= 70.0:
             self.inverter.set_frequency(freq)
+            self.logger.info("Set inverter frequency to {freq} Hz")
         else:
             self.logger.warning(f'Commanded inverter frequency {freq} is out of range')
         
@@ -287,9 +280,11 @@ class CompressorSmaxService:
         else:
             self.logger.error('SMA-X client not found, nothing to clean up')
             
-        if self.lakeshores:
-            for ls in self.lakeshores:
-                ls.ls._resource.close()
+        if self.compressor:
+            self.compressor.disconnect()
+            
+        if self.inverter:
+            self.inverter.disconnect()
 
         # Exit to finally stop the serivce
         sys.exit(0)

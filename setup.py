@@ -56,11 +56,11 @@ setup(
     keywords=[
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.11',
     install_requires=[
         'pymodbus',
-	'systemd-python',
-	'retrying'
+	    'systemd-python',
+	    'retrying'
     ],
     extras_require={
     },

@@ -438,6 +438,22 @@ class Compressor(object):
         # int: how long to wait before checking that compressor enable/disable
         #       command worked
         self._enable_delay = 1.0
+        
+    @property
+    def connected(self):
+        """bool: State of the modbus connection to the compressor.
+        
+        returns:
+            bool: connection status"""
+        return self._client.connected
+    
+    def connect(self):
+        """Connect to the compressor."""
+        self._client.connect()
+        
+    def disconnect(self):
+        """Disconnect from the compressor"""
+        self._client.disconnect()
 
     @property
     def state_code(self):
