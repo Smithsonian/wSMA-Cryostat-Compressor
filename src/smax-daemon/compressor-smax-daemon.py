@@ -121,6 +121,10 @@ class CompressorSmaxService:
             self.logger.error(f"Could not connect to Compressor")
         
     def create_inverter(self):
+        if "ip_address" in self._config["inverter"].keys():
+            self._inverter_address = self._config["inverter"]["ip_address"]
+        else:
+            self._inverter_address = self._config["serial_server"]
         self._inverter_port = self._config["inverter"]["port"]
         self._inverter_data = self._config["inverter"]["logged_data"]
         
@@ -161,17 +165,21 @@ class CompressorSmaxService:
         self.smax_set_units()
         
         # Set default values for pubsub channels
+        try:
+            self.smax_client.smax_pull(f"{self.smax_table}:{self.smax_key}", self.smax_power_control_key)
+        except:
+            self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", self.smax_power_control_key, 0)
         if self.inverter:
             try:
-                self.smax_client.smax_pull(self.smax_table, self.smax_inverter_freq_control_key)
+                self.smax_client.smax_pull(f"{self.smax_table}:{self.smax_key}", self.smax_inverter_freq_control_key)
             except:
-                self.smax_client.smax_share(self.smax_table, self.smax_inverter_freq_control_key, self._config["inverter"]["default_frequency"])
+                self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", self.smax_inverter_freq_control_key, self._config["inverter"]["default_frequency"])
                 self.logger.info(f'Set initial frequency for inverter to {self._config["inverter"]["default_frequency"]}')
 
         # Register pubsub channels
-        self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_power_control_key]), self.compressor_power_control_callback)
+        self.smax_client.smax_subscribe(f"{self.smax_table}:{self.smax_key}:{self.smax_power_control_key}", self.compressor_power_control_callback)
         if self.inverter:
-            self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_inverter_freq_control_key]), self.inverter_freq_control_callback)
+            self.smax_client.smax_subscribe(f"{self.smax_table}:{self.smax_key}:{self.smax_inverter_freq_control_key}", self.inverter_freq_control_callback)
         self.logger.info('Subscribed to compressor and inverter control pubsub notifications')
 
         # Set up the time for the next logging action
@@ -199,8 +207,9 @@ class CompressorSmaxService:
                     unit = data["units"]
             self._smax_meta["units"][d] = unit
         if self.inverter:
-            for data in self._config["inverter"]["logged_data"].keys():
+            for d in self._config["inverter"]["logged_data"].keys():
                 unit = None
+                data = self._config["inverter"]["logged_data"][d]
                 if "units" in data.keys():
                     unit = data["units"]
                 self._smax_meta["units"][d] = unit

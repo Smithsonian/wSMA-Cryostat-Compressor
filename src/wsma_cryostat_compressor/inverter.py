@@ -138,7 +138,7 @@ class Inverter(object):
     def _read_registers(self, address, count=1, unit=1):
         """Read holding registers and check for errors, using the
         retrying module to retry up to 5 times."""
-        r = self._client.read_holding_registers(address, count=count, unit=unit)
+        r = self._client.read_holding_registers(address, count=count, slave=unit)
         if _is_modbus_io_error(r):
             raise r
         else:
@@ -165,24 +165,24 @@ class Inverter(object):
 
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
-        r = self._read_registers(self._frequency_addr, count=2, unit=1)
-        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+        r = self._read_registers(self._frequency_addr, count=2, unit=self._unit)
+        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
         result = decoder.decode_16bit_int()
         self._frequency = result
 
     def _get_current(self):
         """Get the output current from the inverter"""
-        r = self._read_registers(self._current_addr, count=1, unit=1)
+        r = self._read_registers(self._current_addr, count=1, unit=self._unit)
         self._current = r.registers[0]
 
     def _get_voltage(self):
         """Get the output voltage from the inverter"""
-        r = self._read_registers(self._voltage_addr, count=1, unit=1)
+        r = self._read_registers(self._voltage_addr, count=1, unit=self._unit)
         self._voltage = r.registers[0]
 
     def _get_power(self):
         """Get the output power from the inverter"""
-        r = self._read_registers(self._power_addr, count=1, unit=1)
+        r = self._read_registers(self._power_addr, count=1, unit=self._unit)
         self._power = r.registers[0]
 
     def _set_frequency(self, freq):
@@ -191,7 +191,7 @@ class Inverter(object):
         Args:
             freq: int: Frequency to set in units of 0.01 Hz"""
         # munge frequency into two bytes
-        response = self._client.write_register(self._frequency_control_addr, freq, count=1, unit=1)
+        response = self._client.write_register(self._frequency_control_addr, freq, count=1, unit=self._unit)
         sleep(self._set_delay)
         self._get_frequency()
 

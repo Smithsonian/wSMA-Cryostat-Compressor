@@ -4,14 +4,14 @@
         "smax_server":"192.168.42.1",
         "smax_port":6379,
         "smax_db":0,
-        "smax_table":"antenna:0:receiver:wsma:cryostat",
+        "smax_table":"antenna:1:receiver:wsma:cryostat",
         "smax_key":"compressor",
         "smax_power_control_key":"compressor_control",
         "smax_inverter_freq_control_key":"compressor_control_frequency"
     },
-    "serial_server":"192.168.1.13",
+    "serial_server":"192.168.42.14",
     "compressor":{
-        "ip_address":"192.168.1.12",
+        "ip_address":"192.168.42.12",
         "port":502,
         "logged_data":{
             "enabled":{"type":"int" },
@@ -34,7 +34,8 @@
         }
     },
     "inverter":{
-        "port":3,
+        "ip_address":"192.168.42.14",
+        "port":502,
         "default_frequency":60,
         "logged_data":{
             "frequency":{"units":"Hz"},
