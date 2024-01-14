@@ -9,10 +9,10 @@
 
 SYSDUSER="$HOME/.config/systemd/user"
 INSTALL="$SYSDUSER/compressor-smax-daemon"
-CONFIG="$HOME/wsma_cryostat_config"
+CONFIG="$HOME/wsma_config"
 
 mkdir -p $INSTALL
-mkdir -p "$CONFIG/compressor"
+mkdir -p "$CONFIG/cryostat/compressor"
 
 cp "./compressor-smax-daemon.py" $INSTALL
 cp "./compressor-smax-daemon.service" $SYSDUSER
@@ -23,7 +23,7 @@ then
     cp "./smax_config.json" $CONFIG
 fi
 
-cp "./compressor_config.json" "$CONFIG/compressor"
+cp "./compressor_config.json" "$CONFIG/cryostat/compressor"
 
 chmod -R 755 $INSTALL
 

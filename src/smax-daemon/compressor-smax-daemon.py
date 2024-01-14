@@ -14,6 +14,9 @@ default_CM4116_IP = "192.168.42.21"
 default_port = 1
 default_timeout = 10
 
+default_config = "~/wsma_cryostat_config/compressor/compressor_config.json"
+default_smax_config = "~/wsma_cryostat_config/smax_config.json"
+
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
@@ -26,7 +29,7 @@ def tcpip_address(ip=default_CM4116_IP, port=default_port):
 
 
 class CompressorSmaxService:
-    def __init__(self, config="~/wsma_cryostat_config/compressor/compressor_config.json", smax_config="~/wsma_cryostat_config/smax_config.json"):
+    def __init__(self, config=default_config, smax_config=default_smax_config):
         """Service object initialization code"""
         self.logger = self._init_logger()
         
@@ -303,5 +306,6 @@ class CompressorSmaxService:
 
 if __name__ == '__main__':
     # Do start up stuff
-    service = CompressorSmaxService()
+    args = sys.argv[1:]
+    service = CompressorSmaxService(*args)
     service.start()
