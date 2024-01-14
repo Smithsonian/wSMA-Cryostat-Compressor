@@ -60,6 +60,10 @@ class CompressorSmaxService:
             with open(smax_config) as fp:
                 s_config = json.load(fp)
                 fp.close()
+            if "smax_table" in self._config["smax_config"]:
+                smax_root = s_config["smax_table"]
+                self._config["smax_config"]["smax_table"] = ":".join(smax_root, self._config["smax_config"]["smax_table"])
+                del s_config["smax_table"]
             self._config["smax_config"].update(s_config)
         
         # parse the _config dictionary and set up values
