@@ -24,6 +24,7 @@ then
 fi
 
 cp "./compressor_config.json" "$CONFIG/cryostat/compressor"
+cp "./log_keys.conf" "$CONFIG/cryostat/compressor"
 
 chmod -R 755 $INSTALL
 
