@@ -26,11 +26,11 @@ def tcpip_address(ip=default_CM4116_IP, port=default_port):
 
 
 class CompressorSmaxService:
-    def __init__(self, config="compressor_config.json"):
+    def __init__(self, config="~/wsma_cryostat_config/compressor/compressor_config.json", smax_config="~/wsma_cryostat_config/smax_config.json"):
         """Service object initialization code"""
         self.logger = self._init_logger()
         
-        self.read_config(config)
+        self.read_config(config, smax_config)
 
         # Compressor and Inverter objects
         self.compressor = None
@@ -48,12 +48,19 @@ class CompressorSmaxService:
         # Log that we managed to create the instance
         self.logger.info('Compressor-SMAX-Daemon instance created')
         
-    def read_config(self, config):
+    def read_config(self, config, smax_config=None):
         """Read the configuration file."""
         # Read the file
         with open(config) as fp:
             self._config = json.load(fp)
             fp.close()
+        
+        # If smax_config is given, update the compressor specific config file with the smax_config
+        if smax_config:    
+            with open(smax_config) as fp:
+                s_config = json.load(fp)
+                fp.close()
+            self._config["smax_config"].update(s_config)
         
         # parse the _config dictionary and set up values
         self.smax_server = self._config["smax_config"]["smax_server"]

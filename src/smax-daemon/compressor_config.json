@@ -1,10 +1,6 @@
 {
     "logging_interval":30,
     "smax_config":{
-        "smax_server":"192.168.42.1",
-        "smax_port":6379,
-        "smax_db":0,
-        "smax_table":"antenna:0:receiver:wsma:cryostat",
         "smax_key":"compressor",
         "smax_power_control_key":"compressor_control",
         "smax_inverter_freq_control_key":"compressor_control_frequency"
