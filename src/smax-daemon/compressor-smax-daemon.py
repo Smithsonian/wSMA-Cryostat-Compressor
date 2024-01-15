@@ -10,7 +10,7 @@ import systemd.daemon
 import wsma_cryostat_compressor
 import wsma_cryostat_compressor.inverter
 
-default_CM4116_IP = "192.168.42.21"
+default_CM4116_IP = "192.168.42.11"
 default_port = 1
 default_timeout = 10
 
