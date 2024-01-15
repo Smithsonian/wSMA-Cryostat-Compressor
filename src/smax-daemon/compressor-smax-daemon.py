@@ -14,8 +14,8 @@ default_CM4116_IP = "192.168.42.21"
 default_port = 1
 default_timeout = 10
 
-default_config = "~/wsma_cryostat_config/compressor/compressor_config.json"
-default_smax_config = "~/wsma_cryostat_config/smax_config.json"
+default_config = "~/wsma_config/cryostat/compressor/compressor_config.json"
+default_smax_config = "~/wsma_config/smax_config.json"
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
