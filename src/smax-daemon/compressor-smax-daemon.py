@@ -243,7 +243,7 @@ class CompressorSmaxService:
             if not inverter_error:
                 for data in self._inverter_data.keys():
                     reading = self.inverter.__getattribute__(data)
-                    logged_data[data] = reading
+                    logged_data[":".join(['inverter', data])] = reading
                     self.logger.info(f'Got data for inverter {data}: {reading}')
                     logged_data['inverter_comms_status'] = "good"
             else:

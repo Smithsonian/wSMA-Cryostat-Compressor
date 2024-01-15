@@ -4,7 +4,7 @@
         "smax_table":"cryostat",
         "smax_key":"compressor",
         "smax_power_control_key":"compressor_control",
-        "smax_inverter_freq_control_key":"compressor_control_frequency"
+        "smax_inverter_freq_control_key":"frequency_control"
     },
     "serial_server":"192.168.1.13",
     "compressor":{
