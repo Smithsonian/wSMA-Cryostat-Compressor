@@ -138,15 +138,15 @@ class CompressorSmaxService:
         # Set default values for pubsub channels
         if self.inverter:
             try:
-                self.smax_client.smax_pull(self.smax_table, self.smax_inverter_freq_control_key)
+                self.smax_client.smax_pull(":".join([self.smax_table, self.smax_key]), self.smax_inverter_freq_control_key)
             except:
-                self.smax_client.smax_share(self.smax_table, self.smax_inverter_freq_control_key, self._config["inverter"]["default_frequency"])
+                self.smax_client.smax_share(":".join([self.smax_table, self.smax_key]), self.smax_inverter_freq_control_key, self._config["inverter"]["default_frequency"])
                 self.logger.info(f'Set initial frequency for inverter to {self._config["inverter"]["default_frequency"]}')
 
         # Register pubsub channels
-        self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_power_control_key]), self.compressor_power_control_callback)
+        self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_key, self.smax_power_control_key]), self.compressor_power_control_callback)
         if self.inverter:
-            self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_inverter_freq_control_key]), self.inverter_freq_control_callback)
+            self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_key, self.smax_inverter_freq_control_key]), self.inverter_freq_control_callback)
         self.logger.info('Subscribed to compressor and inverter control pubsub notifications')
 
         # Set up the time for the next logging action
