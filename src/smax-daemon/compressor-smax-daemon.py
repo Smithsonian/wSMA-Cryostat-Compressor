@@ -251,8 +251,14 @@ class CompressorSmaxService:
                 logged_data['inverter_comms_status'] = "stale"
                 
         # write values to SMAX
-        for data in logged_data.keys():
-            self.smax_client.smax_share(f"{self.smax_table}:{self.smax_key}", data, logged_data[data])
+        for key in logged_data.keys():
+            if ":" in key:
+                atab = ":".join([self.smax_key, key.split(":")[0:-1]])
+                skey = data.split(":")[-1]
+            else:
+                atab = self.smax_key
+                skey = key
+            self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
         self.logger.info(f'Wrote compressor and inverter data to SMAX ')
         
         
