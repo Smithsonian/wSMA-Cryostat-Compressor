@@ -344,7 +344,7 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._warning_code = 0.0
+        self._warning_code = 0
 
         #: int: Current Error state of the compressor
         #       values are an OR of:
@@ -369,7 +369,7 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._error_code = 0.0
+        self._error_code = 0
 
         # float: Coolant IN temperature in self._temp_units
         self._coolant_in = 0.0
@@ -759,7 +759,7 @@ class Compressor(object):
     def _get_warnings(self):
         """Read the current warnings from the compressor."""
         r = self._read_float32(self._warning_addr)
-        self._warning_code = r
+        self._warning_code = int(r)
 
     def get_warnings(self):
         """Read the current warnings from the compressor.
@@ -772,7 +772,7 @@ class Compressor(object):
     def _get_errors(self):
         """Read the current errors from the compressor."""
         r = self._read_float32(self._error_addr)
-        self._error_code = r
+        self._error_code = int(r)
 
     def get_errors(self):
         """Read the current errors from the compressor.
