@@ -136,6 +136,9 @@ class CompressorSmaxService:
         self.smax_set_units()
         
         # Set default values for pubsub channels
+        # maintain compressor power on/off
+        self.smax_client.smax_share(":".join([self.smax_table, self.smax_key]), self.smax_power_control_key, self.compressor.enabled)
+        self.logger.info(f'Set compressor power control key to {self.compressor.enabled}')
         if self.inverter:
             try:
                 self.smax_client.smax_pull(":".join([self.smax_table, self.smax_key]), self.smax_inverter_freq_control_key)
