@@ -6,9 +6,9 @@
         "smax_power_control_key":"compressor_control",
         "smax_inverter_freq_control_key":"frequency_control"
     },
-    "serial_server":"192.168.1.13",
+    "serial_server":"192.168.42.13",
     "compressor":{
-        "ip_address":"192.168.1.12",
+        "ip_address":"192.168.42.12",
         "port":502,
         "logged_data":{
             "enabled":{"type":"int" },
@@ -31,7 +31,7 @@
         }
     },
     "inverter":{
-        "port":3,
+        "port":502,
         "default_frequency":60,
         "logged_data":{
             "frequency":{"units":"Hz"},

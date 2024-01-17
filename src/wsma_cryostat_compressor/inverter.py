@@ -138,7 +138,7 @@ class Inverter(object):
     def _read_registers(self, address, count=1, unit=1):
         """Read holding registers and check for errors, using the
         retrying module to retry up to 5 times."""
-        r = self._client.read_holding_registers(address, count=count, unit=unit)
+        r = self._client.read_holding_registers(address, count=count, slave=unit)
         if _is_modbus_io_error(r):
             raise r
         else:
@@ -166,7 +166,7 @@ class Inverter(object):
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
         r = self._read_registers(self._frequency_addr, count=2, unit=1)
-        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Big)
+        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
         result = decoder.decode_16bit_int()
         self._frequency = result
 

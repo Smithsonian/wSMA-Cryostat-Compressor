@@ -14,8 +14,8 @@ default_CM4116_IP = "192.168.42.11"
 default_port = 1
 default_timeout = 10
 
-default_config = "~/wsma_config/cryostat/compressor/compressor_config.json"
-default_smax_config = "~/wsma_config/smax_config.json"
+default_config = "/home/smauser/wsma_config/cryostat/compressor/compressor_config.json"
+default_smax_config = "/home/smauser/wsma_config/smax_config.json"
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
@@ -174,7 +174,8 @@ class CompressorSmaxService:
                     unit = data["units"]
             self._smax_meta["units"][d] = unit
         if self.inverter:
-            for data in self._config["inverter"]["logged_data"].keys():
+            for d in self._config["inverter"]["logged_data"].keys():
+                data = self._config["inverter"]["logged_data"][d]
                 unit = None
                 if "units" in data.keys():
                     unit = data["units"]
