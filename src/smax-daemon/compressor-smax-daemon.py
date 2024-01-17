@@ -254,7 +254,7 @@ class CompressorSmaxService:
         for key in logged_data.keys():
             self.logger.info(f"key in logged_data.keys(): {key}")
             if ":" in key:
-                atab = ":".join([self.smax_key, key.split(":")[0:-1]])
+                atab = ":".join([self.smax_key].extend(key.split(":")[0:-1]))
                 skey = key.split(":")[-1]
             else:
                 atab = self.smax_key
