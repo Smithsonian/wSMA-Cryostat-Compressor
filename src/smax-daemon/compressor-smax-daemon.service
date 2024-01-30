@@ -7,6 +7,7 @@ NotifyAccess=all
 Environment=PYTHONUNBUFFERED=1
 KillSignal=SIGINT
 WorkingDirectory=/home/smauser/.config/systemd/user/compressor-smax-daemon
+ExecStartPre= /bin/nm-online -q
 ExecStart=/home/smauser/.config/systemd/user/compressor-smax-daemon/on-start.sh
 
 [Install]

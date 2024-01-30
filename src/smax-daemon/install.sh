@@ -23,8 +23,19 @@ then
     cp "./smax_config.json" $CONFIG
 fi
 
-cp "./compressor_config.json" "$CONFIG/cryostat/compressor"
-cp "./log_keys.conf" "$CONFIG/cryostat/compressor"
+if ! test -f "$CONFIG/cryostat/compressor/compressor_config.json"
+then
+    cp "./compressor_config.json" "$CONFIG/cryostat/compressor"
+    cp "./log_keys.conf" "$CONFIG/cryostat/compressor"
+else
+    read -p "Overwrite compressor_config.json and log_keys.conf? " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+        cp "./compressor_config.json" "$CONFIG/cryostat/compressor"
+        cp "./log_keys.conf" "$CONFIG/cryostat/compressor"
+    fi
+fi
 
 chmod -R 755 $INSTALL
 
