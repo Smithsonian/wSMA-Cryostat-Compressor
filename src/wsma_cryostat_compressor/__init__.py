@@ -566,6 +566,14 @@ class Compressor(object):
         self._client.disconnect()
 
     @property
+    def inverter(self):
+        """int: Does compressor have an inverter."""
+        if self._inverter:
+            return True
+        else:
+            return False
+
+    @property
     def state_code(self):
         """int: State of the compressor.
             values are one of:
