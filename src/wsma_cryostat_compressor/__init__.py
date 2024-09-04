@@ -796,7 +796,7 @@ class Compressor(object):
 
         Returns:
             float: Python float read from the register."""
-        r = self._client.read_input_registers(addr, count=2)
+        r = self._client.read_input_registers(addr, count=2, slave=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -814,7 +814,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_registers(addr, count=2)
+        r = self._client.read_input_registers(addr, count=2, slave=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -832,7 +832,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_registers(addr, count=1)
+        r = self._client.read_input_registers(addr, count=1, slave=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -850,7 +850,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_registers(addr, count=1)
+        r = self._client.read_input_registers(addr, count=1, slave=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -1195,7 +1195,7 @@ class Compressor(object):
         if self._inverter is None:
             return None
         elif self._inverter=="internal":
-            self._client.write_registers(self._inverter_set_freq_addr, int(freq*10))
+            self._client.write_registers(self._inverter_set_freq_addr, int(freq*10), slave=1)
         elif self._inverter=="rs485":
             self._inverterclient.set_frequency(freq)
         else:
@@ -1239,7 +1239,7 @@ class Compressor(object):
     def _get_coldhead_rpm(self):
         """Read the coldhead RPM"""
         if self._software_rev.startswith("3"):
-            rpm = self._read_int(self._rpm_addr)
+            rpm = self._read_int16(self._rpm_addr)
             self._coldhead_rpm = rpm/100.
 
     def get_coldhead_rpm(self):
@@ -1268,7 +1268,7 @@ class Compressor(object):
 
         Returns:
             str: serial number from the compressor"""
-        r = self._client.read_input_registers(self._serial_addr)
+        r = self._client.read_input_registers(self._serial_addr, 1, slave=1)
         self._serial = r.registers[0]
         return self.serial
 
@@ -1277,7 +1277,7 @@ class Compressor(object):
 
         Returns:
             str: model name from the compressor"""
-        r = self._client.read_input_registers(self._model_addr)
+        r = self._client.read_input_registers(self._model_addr, 2, slave=1)
         model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
         self._model = model
         return self.model
@@ -1293,7 +1293,7 @@ class Compressor(object):
 
     def on(self):
         """Turn the compressor on."""
-        w = self._client.write_registers(self._enable_addr, 0x0001)
+        w = self._client.write_registers(self._enable_addr, 0x0001, slave=1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn on")
         else:
@@ -1309,7 +1309,7 @@ class Compressor(object):
 
     def off(self):
         """Turn the compressor off."""
-        w = self._client.write_registers(self._enable_addr, 0x00FF)
+        w = self._client.write_registers(self._enable_addr, 0x00FF, slave=1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn off")
         else:
