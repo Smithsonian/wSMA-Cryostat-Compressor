@@ -1238,24 +1238,16 @@ class Compressor(object):
 
         Returns:
             int: the pressure scale code."""
-        r = self._read_input_register(self._press_unit_addr)
-        if r.isError():
-            raise RuntimeError("Could not get pressure units")
-        else:
-            self._press_scale = r.registers[0]
-            return self._press_scale
+        self._press_scale = self._read_input_register(self._press_unit_addr)
+        return self._press_scale
 
     def get_temperature_scale(self):
         """Read the temperature scale.
 
         Returns:
             int: the temperature scale code."""
-        r = self._read_input_register(self._temp_unit_addr)
-        if r.isError():
-            raise RuntimeError("Could not get temperature units")
-        else:
-            self._temp_scale = r.registers[0]
-            return self._temp_scale
+        self._temp_scale = self._read_input_register(self._temp_unit_addr)
+        return self._temp_scale
 
     def get_serial(self):
         """Read the serial number from the compressor
