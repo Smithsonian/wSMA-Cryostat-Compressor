@@ -788,7 +788,7 @@ class Compressor(object):
 
         Returns:
             float: Python float read from the register."""
-        r = self._client.read_input_register(addr, count=2)
+        r = self._client.read_input_registers(addr, count=2)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -806,7 +806,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_register(addr, count=2)
+        r = self._client.read_input_registers(addr, count=2)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -824,7 +824,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_register(addr, count=1)
+        r = self._client.read_input_registers(addr, count=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -842,7 +842,7 @@ class Compressor(object):
 
         Returns:
             int: Python int read from the register."""
-        r = self._client.read_input_register(addr, count=1)
+        r = self._client.read_input_registers(addr, count=1)
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
@@ -934,7 +934,7 @@ class Compressor(object):
 
     def _get_state(self):
         """Read the current state of the compressor."""
-        r = self._client.read_input_register(self._operating_state_addr)
+        r = self._read_input_register(self._operating_state_addr)
         if r.isError():
             raise RuntimeError("Could not get current state")
         else:
@@ -950,7 +950,7 @@ class Compressor(object):
 
     def _get_enabled(self):
         """Read the current Enable state of the compressor"""
-        r = self._client.read_input_register(self._enabled_addr)
+        r = self._read_input_register(self._enabled_addr)
         if r.isError():
             raise RuntimeError("Could not get current enabled state")
         else:
@@ -1174,14 +1174,14 @@ class Compressor(object):
         if self._inverter is None:
             pass
         elif self._inverter=="internal":
-            freq = self._read_int(self._inverter_set_freq_addr)
+            freq = self._read_int16(self._inverter_set_freq_addr)
             self._inverter_set_freq = freq/10.
         elif self._inverter=="rs485":
             self._inverterclient.get_frequency_setting(freq)
         
     def get_inverter_freq_setting(self):
         """Read and return the inverter set frequency"""
-        self._get_inverter_set_freq()
+        self._get_inverter_freq_setting()
         return self._inverter_set_freq
     
     def set_inverter_freq(self, freq):
@@ -1189,7 +1189,7 @@ class Compressor(object):
         if self._inverter is None:
             return None
         elif self._inverter=="internal":
-            self._write_int(self._inverter_set_freq_addr, int(freq*10))
+            self._client.write_registers(self._inverter_set_freq_addr, int(freq*10))
         elif self._inverter=="rs485":
             self._inverterclient.set_frequency(freq)
         else:
@@ -1201,7 +1201,7 @@ class Compressor(object):
         if self._inverter is None:
             pass
         elif self._inverter=="internal":
-            freq = self._read_int(self._inverter_freq_addr)
+            freq = self._read_int16(self._inverter_freq_addr)
             self._inverter_freq = freq/10.
         elif self._inverter=="rs485":
             self._inverterclient.get_frequency()
@@ -1218,7 +1218,7 @@ class Compressor(object):
         if self._inverter is None:
             pass
         elif self._inverter=="internal":
-            curr = self._read_int(self._inverter_curr_addr)
+            curr = self._read_int16(self._inverter_curr_addr)
             self._inverter_curr = curr/10.
         elif self._inverter=="rs485":
             self._inverterclient.get_currrent()
@@ -1246,7 +1246,7 @@ class Compressor(object):
 
         Returns:
             int: the pressure scale code."""
-        r = self._client.read_input_register(self._press_unit_addr)
+        r = self._read_input_register(self._press_unit_addr)
         if r.isError():
             raise RuntimeError("Could not get pressure units")
         else:
@@ -1258,7 +1258,7 @@ class Compressor(object):
 
         Returns:
             int: the temperature scale code."""
-        r = self._client.read_input_register(self._temp_unit_addr)
+        r = self._read_input_register(self._temp_unit_addr)
         if r.isError():
             raise RuntimeError("Could not get temperature units")
         else:
@@ -1266,11 +1266,11 @@ class Compressor(object):
             return self._temp_scale
 
     def get_serial(self):
-        """Read the model name from the compressor
+        """Read the serial number from the compressor
 
         Returns:
-            str: model name from the compressor"""
-        r = self._client.read_input_register(self._serial_addr)
+            str: serial number from the compressor"""
+        r = self._read_input_register(self._serial_addr)
         self._serial = r.registers[0]
         return self.serial
 
@@ -1279,7 +1279,7 @@ class Compressor(object):
 
         Returns:
             str: model name from the compressor"""
-        r = self._client.read_input_register(self._model_addr)
+        r = self._client.read_input_registers(self._model_addr)
         model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
         self._model = model
         return self.model
