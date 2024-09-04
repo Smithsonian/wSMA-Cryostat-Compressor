@@ -1,18 +1,23 @@
-__version__ = '0.2.0'
 
 from time import sleep
+import os
 
-import asyncio
-from pymodbus.client import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient, ModbusSerialClient
 
-from pymodbus.payload import BinaryPayloadDecoder, BinaryPayloadBuilder
+from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ModbusIOException
 
 from retrying import retry
 
-default_address = "inverter-p1"
-default_port = 502
+default_address = os.environ.get("INVERTER_IP", None)
+default_port = os.environ.get("INVERTER_PORT", 502)
+default_serial_conf = {
+                                        "baudrate":9600,
+                                        "bytesize":8,
+                                        "parity":"O",
+                                        "stopbits":1
+                                    }
 
 def _is_modbus_io_error(exception):
     """Return True if an exception is an ModbusIOError, False otherwise.
@@ -49,7 +54,7 @@ class Inverter(object):
     #: int: unit address
     _unit_addr = 0x01
 
-    def __init__(self, address=default_address, port=default_port, unit=1):
+    def __init__(self, address=default_address, port=default_port, unit=1, serial_conf=default_serial_conf):
         """Create an inverter object for communication with the inverter.
 
         Args:
@@ -57,15 +62,17 @@ class Inverter(object):
             port (int): the port of the Modbus TCP server.
             unit (int): the Modbus unit of the inverter.
         """
-        # set up the communications
-        self._client = ModbusTcpClient(address, port=port)
-        self._client.connect()
-
+        self._client = None
         #: str: IP address and port for the inverter.
         self._address = address
         self._port = port
         self._unit = unit
-
+        
+        #: dict:  Serial configuration for directly connected serial inverter
+        # we probably won't use this much, due to having the ethernet
+        # to RS485 adapters
+        self._serial_conf = serial_conf
+        
         #: int: the frequency of the inverter, in units of 0.01 Hz.
         self._frequency = 0
 
@@ -85,12 +92,27 @@ class Inverter(object):
 
         # Get the data from the inverter
         self.update()
+        
+    def connect(self, serial_conf=None):
+        """set up the communications"""
+        if serial_conf:
+            self._serial_conf = serial_conf
+            
+        if self._address.startswith("/dev") or self._address.startswith("COM"):
+            try:
+                self._client = ModbusSerialClient(self._inverter_address, **self._serial_conf)
+            except:
+                pass
+        else:
+            self._client = ModbusTcpClient(self._address, port=self._port)
+            self._client.connect()
+
 
     @property
     def frequency(self):
         """float: The frequency of the inverter in Hz.
 
-        Read only - set the frequency via the set_frequency method."""
+        Read only - set the frequency via the frequency_setting attribute."""
         return self._frequency * 0.01
 
     @property
@@ -107,11 +129,21 @@ class Inverter(object):
     def power(self):
         """float: The output power of the inverter in kW."""
         return self._power * 0.1
+    
+    @property
+    def frequency_setting(self):
+        """float: The frequency setting of the inverter in Hz."""
+        return self._frequency_setting * 0.01
+    
+    @frequency_setting.getter
+    def frequency_setting(self, freq):
+        """float: The frequency setting of the inverter in Hz"""
+        self.set_frequency(freq)
 
     @property
     def address(self):
         """str: The address of the inverter."""
-        return "{}, port {}, unit {}".format(self._address, self._port, self._unit_addr)
+        return "{}, port {}, unit {}".format(self._address, self._port, self._unit)
 
     def update(self):
         """Get updated values for all monitor values from the inverter"""
@@ -190,10 +222,16 @@ class Inverter(object):
 
         Args:
             freq: int: Frequency to set in units of 0.01 Hz"""
-        # munge frequency into two bytes
         response = self._client.write_register(self._frequency_control_addr, freq, count=1, unit=1)
         sleep(self._set_delay)
-        self._get_frequency()
+        self._get_frequency_setting()
+        
+    def _get_frequency_setting(self):
+        """Get the set output frequency of the inverter."""
+        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
+        self._frequency_setting = decoder.decode_16bit_int()
+        
+        
 
     def get_frequency(self):
         """Get current frequency from the inverter and return the value.
@@ -239,3 +277,8 @@ class Inverter(object):
             float: Power in kW."""
         self._get_power()
         return self.power
+    
+    def get_frequency_setting(self):
+        """Get the frequency setting from the inverter"""
+        self._get_frequency_setting()
+        return self.frequency_setting

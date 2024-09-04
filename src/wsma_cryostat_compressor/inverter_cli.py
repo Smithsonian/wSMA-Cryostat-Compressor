@@ -14,12 +14,11 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
-__version__ = '0.2.0'
 
 import argparse
 import wsma_cryostat_compressor.inverter
 
-default_address = 'inverter-p1'
+default_address = 'inverter-wsma2'
 default_port = 502
 
 parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "

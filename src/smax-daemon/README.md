@@ -8,12 +8,9 @@ These config file locations additionally contain a list of SMA-X keys that can b
 
 Service structure is based on tutorials at https://alexandra-zaharia.github.io/posts/stopping-python-systemd-service-cleanly/ and https://github.com/torfsen/python-systemd-tutorial
 
-Service is set up to use `SIGINT` to safely stop the process.  This is caught with a `try/except` statement around the service event loop as `KeyboardInterrupt`, allowing closing of open pipes and files, and other shutdown procedures to be called.
-
 Installation as both a user and system service is described in the second tutorial.
 
 Requires:
 systemd-python (in turn requires linux packages systemd-devel, gcc, python3-devel)
 psutils
-wSMA-Cryostat-Compressor wsma_cryostat_compressor module
 smax-python
