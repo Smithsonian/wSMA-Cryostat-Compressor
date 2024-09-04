@@ -1047,7 +1047,7 @@ class Compressor(object):
     def _get_oil_temp(self):
         """Read the current helium temperature."""
         if self._software_rev.startswith("3"):
-            temp = self._read_int16(self._oil_temp_in_addr)/10.0
+            temp = self._read_int16(self._oil_temp_addr)/10.0
         else:
             temp = self._read_float32(self._oil_temp_addr)
         self._oil_temp = temp
