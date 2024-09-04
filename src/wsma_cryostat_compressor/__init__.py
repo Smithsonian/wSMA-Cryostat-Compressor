@@ -866,6 +866,7 @@ class Compressor(object):
         self._get_enabled()
         self._get_errors()
         self._get_warnings()
+        self._get_coldhead_rpm()
         self._get_coolant_in()
         self._get_coolant_out()
         self._get_oil_temp()
