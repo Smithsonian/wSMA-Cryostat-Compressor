@@ -966,7 +966,10 @@ class Compressor(object):
 
     def _get_warnings(self):
         """Read the current warnings from the compressor."""
-        r = self._read_int32(self._warning_addr)
+        if self._software_rev.startswith("3"):
+            r = self._read_int32(self._warning_addr)
+        else:
+            r = self._read_float32(self._warning_addr)
         self._warning_code = int(r)
 
     def get_warnings(self):
@@ -979,7 +982,10 @@ class Compressor(object):
 
     def _get_errors(self):
         """Read the current errors from the compressor."""
-        r = self._read_int32(self._error_addr)
+        if self._software_rev.startswith("3"):
+            r = self._read_int32(self._error_addr)
+        else:
+            r = self._read_float32(self._error_addr)
         self._error_code = int(r)
 
     def get_errors(self):
