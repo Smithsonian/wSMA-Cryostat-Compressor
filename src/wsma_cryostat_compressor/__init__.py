@@ -388,7 +388,7 @@ class Compressor(object):
                 self._inverter = "internal"
         else:
             cp_registers = cp_v2_registers
-        for k, v in cp_registers:
+        for k, v in cp_registers.items():
             self.__setattr__(k, v)   
         
         #: int: Current state of the compressor
