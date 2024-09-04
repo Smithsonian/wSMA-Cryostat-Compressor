@@ -36,7 +36,7 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument("--on", action="store_true", help="Turn the compressor on")
 group.add_argument("--off", action="store_true", help="Turn the compressor off")
 
-parser.add_argument("-f", "--freq", help="Set the inverter frequency")
+parser.add_argument("-f", "--freq", default=None, help="Set the inverter frequency")
 
 
 def main(args=None):
@@ -109,7 +109,7 @@ def main(args=None):
                 print()
                 print(comp.status)
                 
-        elif 'freq' in args:
+        elif args.freq:
             if comp.inverter:
                 comp.set_inverter_freq(float(args.freq))
             else:
