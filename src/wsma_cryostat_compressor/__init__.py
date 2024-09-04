@@ -1,6 +1,8 @@
 __version__ = '0.2.0'
 
+import os
 from time import sleep
+
 from pymodbus.client import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
