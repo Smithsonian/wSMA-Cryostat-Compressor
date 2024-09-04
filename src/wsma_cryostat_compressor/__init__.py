@@ -5,7 +5,7 @@ from pymodbus.client import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
-import inverter
+from . import inverter
 
 default_IP = os.environ.get("COMPRESSOR_IP", None)
 default_port = os.environ.get("COMPRESSOR_PORT", 502)
