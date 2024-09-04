@@ -934,11 +934,7 @@ class Compressor(object):
 
     def _get_state(self):
         """Read the current state of the compressor."""
-        r = self._read_input_register(self._operating_state_addr)
-        if r.isError():
-            raise RuntimeError("Could not get current state")
-        else:
-            self._state = r.registers[0]
+        self._state = self._read_input_register(self._operating_state_addr)
 
     def get_state(self):
         """Read the current state of the compressor.
@@ -950,11 +946,7 @@ class Compressor(object):
 
     def _get_enabled(self):
         """Read the current Enable state of the compressor"""
-        r = self._read_input_register(self._enabled_addr)
-        if r.isError():
-            raise RuntimeError("Could not get current enabled state")
-        else:
-            self._enabled = r.registers[0]
+        self._enabled = self._read_input_register(self._enabled_addr)
 
     def get_enabled(self):
         """Read the current Enable state of the compressor.
