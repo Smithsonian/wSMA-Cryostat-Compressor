@@ -384,7 +384,7 @@ class Compressor(object):
         
         if self.software_rev.startswith("3"):
             cp_registers = cp_v3_registers
-            if self._model.endswith("i"):
+            if self._model == "CPA28I6":
                 self._inverter = "internal"
         else:
             cp_registers = cp_v2_registers
@@ -553,7 +553,7 @@ class Compressor(object):
         Parameters:
             serial_conf (dict) : configuration for the serial port to pass to ModbusSerialClient"""
         # This should just connect and work in our default rs485 over ethernet set up.
-        if self._inverter.startswith("rs485"):
+        if self._inverter and self._inverter.startswith("rs485"):
             try:
                 self._inverterclient = inverter.Inverter(self._inverter_address, self._inverter_port, unit=unit, serial_conf=serial_conf)
             except:
