@@ -48,6 +48,10 @@ def main(args=None):
         print(args)
         return None
         # comp = wsma_cryostat_compressor.DummyCompressor()
+    elif args.address is None:
+        print("Compressor address not given")
+        print()
+        parser.print_help()
     else:
         if args.inverter_address:
             if args.inverter_address.startswith("/dev/tty") or args.inverter_address.startswith("COM"):
