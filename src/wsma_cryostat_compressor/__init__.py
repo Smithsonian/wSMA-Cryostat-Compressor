@@ -1270,7 +1270,7 @@ class Compressor(object):
 
         Returns:
             str: serial number from the compressor"""
-        r = self._read_input_register(self._serial_addr)
+        r = self._client.read_input_registers(self._serial_addr)
         self._serial = r.registers[0]
         return self.serial
 
