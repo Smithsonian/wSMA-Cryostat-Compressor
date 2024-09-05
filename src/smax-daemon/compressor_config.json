@@ -6,15 +6,21 @@
         "smax_control_keys":{
             "compressor_control_key":"compressor_control_callback",
             "inverter_frequency_control_key":"frequency_control_callback"
+        },
+        "smax_init_keys":{
+            "inverter_frequency_control_key":"frequency"
         }
     },
     "config":{
-        "serial_server":"192.168.42.13",
+        "serial_server":"serial-p2",
         "compressor":{
-            "ip_address":"192.168.42.12"
+            "ip_address":"compressor-p2"
         },
-        "default_frequency":60,
-        "inverter":"built-in"
+        "inverter":{
+            "inverter_type":"rs485_ethernet",
+            "inverter_ip":"inverter-p2",
+            "frequency":60
+        }
     },
     "logged_data":{
         "enabled":{"type":"int" },

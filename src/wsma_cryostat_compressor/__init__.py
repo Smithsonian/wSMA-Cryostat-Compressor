@@ -353,7 +353,7 @@ class Compressor(object):
         Args:
             ip_address (str): IP Address of the compressor controller to communicate with
             port (int): port number for the compressor modbus interface
-            inverter (str or None): One of None, "internal", or "rs485". Controls the communication with
+            inverter (str or None): One of None, "internal", "rs485" or "rs485_ethernet". Controls the communication with
                             the compressor's inverter, if fitted.
             inverter_address (str or None): ModbusTCPClient compatible address for the inverter. Either a /dev/tty* address,
                                     com port address (rs485) or IP address (rs485_ethernet)

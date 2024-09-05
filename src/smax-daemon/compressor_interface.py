@@ -94,15 +94,29 @@ class CompressorInterface:
             self._compressor_port = default_port
         
         if "inverter" in self._hardware_config.keys():
-            inverter_config = self._hardware_config["inverter"]    
+            self._inverter_config = self._hardware_config["inverter"]
+            if "inverter_type" not in self._inverter_config:
+                address = self._inverter_config.get("ip_address", None)
+                if address:
+                    if address.startswith("/dev/tty") or address.startswith("COM"):
+                        self._inverter_config["inverter_type"] = "rs485"
+                    else:
+                        self._inverter_config["inverter_type"] = "rs485_ethernet"
         else: 
-            inverter_config = None
+            self._inverter_config = None
             
             
         self.logger.debug(f"Connecting to {self._serial_server}:{self._tic_port}")
+        if self._inverter_config:
+            self.logger.debug(f"Inverter {self._inverter_config["inverter_type"]} @ {self._inverter_config["ip_address"]}:{self._inverter_config.get("port", default_port)}")
         try:
             with self._hardware_lock:
-                self._hardware = 
+                self._hardware = Compressor( \
+                    ip_address = self._compressor_ip, \
+                    port = self._compressor_port, \
+                    inverter = self._inverter_config.get("inverter_type", None), \
+                    inverter_address= self._inverter_config.get("ip_address", None), \
+                    inverter_port = self._inverter_config.get("port", None) )
                 self._hardware_error = "None"
                 self.logger.debug(f"Connected")
                 if self._hardware and self._hardware_config:
@@ -115,6 +129,20 @@ class CompressorInterface:
             self._hardware = None
             self._hardware_error = repr(e)
             self.logger.error(f"Failed to connect to compressor at {self._compressor_ip} with error {e}.")
+            
+    def initialize_hardware(self, **kwargs):
+        """Set the initial inverter frequency on daemon startup.  If a frequency
+        is not supplied, read it from the hardware config."""
+        if not "frequency" in kwargs:
+            self.logger.debug(f"'frequency' not in kwargs to initialize_hardware, reading from config file.")
+            kwargs["frequency"] = self._inverter_config.get("frequency", None)
+        
+        if kwargs["frequency"]:
+            freq = kwargs["frequency"]
+            self.logger.status(f"Setting inverter frequency to {freq} Hz.")
+            self._hardware.set_inverter_freq(freq)
+        else:
+            self.logger.info(f"No default inverter frequency given.")
             
     def disconnect_hardware(self):
         self._hardware = None
@@ -174,8 +202,8 @@ class CompressorInterface:
         return logged_data
         
 
-    def system_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_system_control_key"""
+    def compressor_control_callback(self, message):
+        """Run on a pubsub notification to smax_table:smax_compressor_control_key"""
         if self.logger:
             date = message.timestamp
             self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
@@ -184,105 +212,56 @@ class CompressorInterface:
             try:
                 with self._hardware_lock:
                     if message.data:
-                        self._hardware.set_system_state(state=True)
+                        self._hardware.on()
                         if self.logger:
-                            self.logger.info("Turning vacuum system on")
-                        else:
-                            self._hardware.set_system_state(state=False)
-                            if self.logger:
-                                self.logger.info("Turning vacuum system off")
+                            self.logger.info("Turning compressor on")
+                    else:
+                        self._hardware.off()
+                        if self.logger:
+                            self.logger.info("Turning compressor off")
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
                 if self.logger:
                     self.logger.error(f'Attempt by {message.origin} to set random_range to {message.data} failed with {self._hardware_error}')
                 
             if self.logger:
-                self.logger.status(f'{message.origin} set system state to {message.data}')
+                self.logger.status(f'{message.origin} set compressor state to {message.data}')
         else:
             if self.logger:
-                self.logger.status(f'Receiver {message.origin} to set system state to {message.data}, but no hardware connected.')
+                self.logger.status(f'{message.origin} tried to set system state to {message.data}, but no hardware connected.')
     
-    def turbo_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_turbo_control_key"""
+    def inverter_control_callback(self, message):
+        """Run on a pubsub notification to smax_table:smax_inverter_freq_control_key"""
         if self.logger:
             date = message.timestamp
             self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
         
-        if self._hardware:
-            try:
-                with self._hardware_lock:
-                    if message.data:
-                        self._hardware.set_turbo_state(state=True)
-                        if self.logger:
-                            self.logger.info("Turning turbo pump on")
-                        else:
-                            self._hardware.set_turbo_state(state=False)
-                            if self.logger:
-                                self.logger.info("Turning turbo pump off")
-            except Exception as e: # Except hardware errors
-                self._hardware_error = repr(e)
-                if self.logger:
-                    self.logger.error(f'Attempt by {message.origin} to set random_range to {message.data} failed with {self._hardware_error}')
-                
-            if self.logger:
-                self.logger.status(f'{message.origin} set turbo pump to {message.data}')
-        else:
-            if self.logger:
-                self.logger.status(f'Received {message.origin} to set turbo pump state to {message.data}, but no hardware connected.')
-        
-    def backing_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_backing_control_key"""
-        if self.logger:
-            date = message.timestamp
-            self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
+        try:
+            data = float(message.data)
+            if data < 40.0:
+                raise ValueError(f'Request frequency {data} Hz is too low.')
+            if data > 70.0:
+                raise ValueError(f'Requested frequency {data} Hz is too high')
+        except ValueError as e:
+            self.logger.info(f'Could not convert {message.data} to valid frequency with error {e}')
+            return
+        except AttributeError as e:
+            self.logger.info(f'No frequency setting supplied')
+            return
         
         if self._hardware:
             try:
                 with self._hardware_lock:
-                    if message.data:
-                        self._hardware.set_backing_state(state=True)
-                        if self.logger:
-                            self.logger.info("Turning backing pump on")
-                        else:
-                            self._hardware.set_backing_state(state=False)
-                            if self.logger:
-                                self.logger.info("Turning backing pump off")
+                    self._hardware.set_inverter_freq(data)
+                    if self.logger:
+                        self.logger.info(f"Setting inverter frequency to {data} Hz")
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
                 if self.logger:
-                    self.logger.error(f'Attempt by {message.origin} to set random_range to {message.data} failed with {self._hardware_error}')
+                    self.logger.error(f'Attempt by {message.origin} to set inverter frequency to {data} Hz failed with {self._hardware_error}')
                 
             if self.logger:
-                self.logger.status(f'{message.origin} set backing pump state to {message.data}')
+                self.logger.status(f'{message.origin} set inverter frequency to {data} Hz')
         else:
             if self.logger:
-                self.logger.status(f'Received {message.origin} to set backing pump state to {message.data}, but no hardware connected.')
-    
-    def relay_1_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_relay_1_control_key"""
-        if self.logger:
-            date = message.timestamp
-            self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
-        
-        if self._hardware:
-            try:
-                with self._hardware_lock:
-                    if message.data:
-                        self._hardware.set_relay_state(relay=1, state=True)
-                        if self.logger:
-                            self.logger.info("Turning Relay 1 on")
-                        else:
-                            
-                            self._hardware.set__state(relay=1, state=False)
-                            if self.logger:
-                                self.logger.info("Turning Relay 1 off")
-            except Exception as e: # Except hardware errors
-                self._hardware_error = repr(e)
-                if self.logger:
-                    self.logger.error(f'Attempt by {message.origin} to set random_range to {message.data} failed with {self._hardware_error}')
-                
-            if self.logger:
-                self.logger.status(f'{message.origin} set Relay 1 to {message.data}')
-        else:
-            if self.logger:
-                self.logger.status(f'Received {message.origin} to set Relay 1 state to {message.data}, but no hardware connected.')
+                self.logger.status(f'Received {message.origin} to set inverter frequency to {message.data}, but no hardware connected.')
