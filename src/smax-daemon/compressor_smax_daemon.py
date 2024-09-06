@@ -1,31 +1,89 @@
+#!/usr/bin/env python
 import logging
 import sys
+import os
 import time
-import datetime
+
+import threading
 import json
-import retrying
 
+from retrying import retry
 import systemd.daemon
+import signal
 
-import wsma_cryostat_compressor
-import wsma_cryostat_compressor.inverter
+# Change these based on system setup
+default_smax_config = os.path.expanduser("~smauser/wsma_config/smax_config.json")
+default_config = os.path.expanduser("~smauser/wsma_config/cryostat/compressor/compressor_config.json")
 
-default_CM4116_IP = "192.168.42.11"
-default_port = 1
-default_timeout = 10
+# Change these lines per application
+daemon_name = "compressor_smax_daemon"
+from compressor_interface import CompressorInterface as HardwareInterface
 
-default_config = "/home/smauser/wsma_config/cryostat/compressor/compressor_config.json"
-default_smax_config = "/home/smauser/wsma_config/smax_config.json"
+# Change between testing and production
+logging_level = logging.DEBUG
+#logging_level = logging.WARNING
+
+logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
+
+# add a logging level for status output
+def add_logging_level(level_name, level_num, method_name=None):
+    """
+    Comprehensively adds a new logging level to the `logging` module and the
+    currently configured logging class.
+
+    `level_name` becomes an attribute of the `logging` module with the value
+    `level_num`. `method_name` becomes a convenience method for both `logging`
+    itself and the class returned by `logging.getLoggerClass()` (usually just
+    `logging.Logger`). If `method_name` is not specified, `level_name.lower()` is
+    used.
+
+    To avoid accidental clobberings of existing attributes, this method will
+    raise an `AttributeError` if the level name is already an attribute of the
+    `logging` module or if the method name is already present 
+
+    Example
+    -------
+    >>> addLoggingLevel('TRACE', logging.DEBUG - 5)
+    >>> logging.getLogger(__name__).setLevel("TRACE")
+    >>> logging.getLogger(__name__).trace('that worked')
+    >>> logging.trace('so did this')
+    >>> logging.TRACE
+    5
+
+    """
+    if not method_name:
+        method_name = level_name.lower()
+
+    if hasattr(logging, level_name):
+       raise AttributeError('{} already defined in logging module'.format(level_name))
+    if hasattr(logging, method_name):
+       raise AttributeError('{} already defined in logging module'.format(method_name))
+    if hasattr(logging.getLoggerClass(), method_name):
+       raise AttributeError('{} already defined in logger class'.format(method_name))
+
+    # This method was inspired by the answers to Stack Overflow post
+    # http://stackoverflow.com/q/2183233/2988730, especially
+    # http://stackoverflow.com/a/13638084/2988730
+    def logForLevel(self, message, *args, **kwargs):
+        if self.isEnabledFor(level_num):
+            self._log(level_num, message, args, **kwargs)
+    def logToRoot(message, *args, **kwargs):
+        logging.log(level_num, message, *args, **kwargs)
+
+    logging.addLevelName(level_num, level_name)
+    setattr(logging, level_name, level_num)
+    setattr(logging.getLoggerClass(), method_name, logForLevel)
+    setattr(logging, method_name, logToRoot)
+    
+add_logging_level('STATUS', logging.WARNING+5)
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
-from smax import SmaxRedisClient
+from smax import SmaxRedisClient, SmaxConnectionError, SmaxKeyError, join, normalize_pair
 
-def tcpip_address(ip=default_CM4116_IP, port=default_port):
-    """Get a pyvisa TCPIP resource name for a CM4116 Serial to ethernet converter"""
-    address = "TCPIP::{:s}::40{:02d}::SOCKET"
-    return address.format(ip, port)
+def _is_smaxconnectionerror(exception):
+    return isinstance(exception, SmaxConnectionError)
 
 
 class CompressorSmaxService:
@@ -33,24 +91,39 @@ class CompressorSmaxService:
         """Service object initialization code"""
         self.logger = self._init_logger()
         
-        self.read_config(config, smax_config)
+        # Configure SIGTERM behavior
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
 
-        # Compressor and Inverter objects
-        self.compressor = None
-        self.inverter = None
-        
-        self.create_compressor()
-        self.create_inverter()
+        # A list of control keys
+        self.control_keys = None
+
+        # Read the hardware and SMAX configuration
+        self.read_config(config, smax_config)
+        self.logger.info('Read Config File')
 
         # The SMAXRedisClient instance
         self.smax_client = None
         
-        self._smax_meta = None
-        
-        
+        # The simulated hardware class
+        self.hardware = None
+
         # Log that we managed to create the instance
-        self.logger.info('Compressor-SMAX-Daemon instance created')
+        self.logger.info(f'{daemon_name} instance created')
         
+        # A time to delay between loops
+        self.delay = 1.0
+
+    def _init_logger(self):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging_level)
+        file_handler = logging.FileHandler(f'{daemon_name.lower()}.log')
+        file_handler.setLevel(logging_level)
+        fileFormatter = logging.Formatter('%(asctime)s: %(levelname)s - %(message)s')
+        fileFormatter.default_msec_format = '%s.%03d'
+        file_handler.setFormatter(fileFormatter)
+        logger.addHandler(file_handler)
+        return logger
+    
     def read_config(self, config, smax_config=None):
         """Read the configuration file."""
         # Read the file
@@ -58,11 +131,13 @@ class CompressorSmaxService:
             self._config = json.load(fp)
             fp.close()
         
-        # If smax_config is given, update the compressor specific config file with the smax_config
+        # If smax_config is given, update the hardware specific config file with the smax_config
         if smax_config:    
             with open(smax_config) as fp:
                 s_config = json.load(fp)
                 fp.close()
+            self.logger.debug("Got smax_config")
+            self.logger.debug(s_config)
             if "smax_table" in self._config["smax_config"]:
                 smax_root = s_config["smax_table"]
                 self._config["smax_config"]["smax_table"] = ":".join([smax_root, self._config["smax_config"]["smax_table"]])
@@ -75,85 +150,38 @@ class CompressorSmaxService:
         self.smax_db = self._config["smax_config"]["smax_db"]
         self.smax_table = self._config["smax_config"]["smax_table"]
         self.smax_key = self._config["smax_config"]["smax_key"]
-        self.smax_power_control_key = self._config["smax_config"]["smax_power_control_key"]
-        self.smax_inverter_freq_control_key = self._config["smax_config"]["smax_inverter_freq_control_key"]
+        
+        self.logger.info("SMAX Configuration:")
+        self.logger.info(f"\tSMAX Server: {self.smax_server}")
+        self.logger.info(f"\tSMAX Port  : {self.smax_port}")
+        self.logger.info(f"\tSMAx DB    : {self.smax_db}")
+        self.logger.info(f"\tSMAX Table : {self.smax_table}")
+        self.logger.info(f"\tSMAX Key   : {self.smax_key}")
+        
+        
+        self.control_keys = self._config["smax_config"]["smax_control_keys"]
+        self.logger.info("Control keys:")
+        for k in self.control_keys.keys():
+            self.logger.info(f"\t {k} : {self.control_keys[k]}")
         
         self.logging_interval = self._config["logging_interval"]
-        self.serial_server = self._config["serial_server"]
-        
-    def create_compressor(self):
-        """Read compressor configuration, and try to connect to it."""
-        self._compressor_ip = self._config["compressor"]["ip_address"]
-        self._compressor_port = self._config["compressor"]["port"]
-        self._compressor_data = self._config["compressor"]["logged_data"]
-        
-        try:
-            self.compressor = wsma_cryostat_compressor.Compressor(self._compressor_ip, self._compressor_port)
-        except Exception as e:
-            self.logger.error(f"Compressor connection exception:\n {e.__str__()}")
-        
-        if self.compressor is None:
-            self.logger.error(f"Could not connect to Compressor")
-        
-    def create_inverter(self):
-        self._inverter_port = self._config["inverter"]["port"]
-        self._inverter_data = self._config["inverter"]["logged_data"]
-        
-        try:
-            self.inverter = wsma_cryostat_compressor.inverter.Inverter(self.serial_server, self._inverter_port)
-        except Exception as e:
-            self.logger.error(f"Inverter connection exception:\n {e.__str__()}")
-        
-        if self.inverter is None:
-            self.logger.error(f"Could not connect to Inverter")
-        
-    def _init_logger(self):
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-        stdout_handler = logging.StreamHandler()
-        stdout_handler.setLevel(logging.DEBUG)
-        stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
-        logger.addHandler(stdout_handler)
-        return logger
+        self.logger.info(f"Logging Interval {self.logging_interval}")
 
     def start(self):
         """Code to be run before the service's main loop"""
         # Start up code
 
-        # This snippet creates a connection to SMA-X that we have to close properly when the
-        # service terminates
-        if self.smax_client is None:
-            self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name="example_smax_daemon")
-        else:
-            self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
+        # Create the hardware interface
+        self.hardware = HardwareInterface(config=self._config, logger=self.logger)
+        self.logger.status('Created hardware interface object')
         
-        self.logger.info('SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smx_db}')
+        # Create the SMA-X interface
+        #
+        # There's no point to us starting without a SMA-X connection, so this call will
+        # use retrying, and hang until we get a connection.
+        self.connect_to_smax()
         
-        # Get initial values and push to SMA-X
-        self.smax_logging_action()
-        
-        # Push units metadata to SMA-X
-        self.smax_set_units()
-        
-        # Set default values for pubsub channels
-        # maintain compressor power on/off
-        self.smax_client.smax_share(":".join([self.smax_table, self.smax_key]), self.smax_power_control_key, self.compressor.enabled)
-        self.logger.info(f'Set compressor power control key to {self.compressor.enabled}')
-        if self.inverter:
-            try:
-                self.smax_client.smax_pull(":".join([self.smax_table, self.smax_key]), self.smax_inverter_freq_control_key)
-            except:
-                self.smax_client.smax_share(":".join([self.smax_table, self.smax_key]), self.smax_inverter_freq_control_key, self._config["inverter"]["default_frequency"])
-                self.logger.info(f'Set initial frequency for inverter to {self._config["inverter"]["default_frequency"]}')
-
-        # Register pubsub channels
-        self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_key, self.smax_power_control_key]), self.compressor_power_control_callback)
-        if self.inverter:
-            self.smax_client.smax_subscribe(":".join([self.smax_table, self.smax_key, self.smax_inverter_freq_control_key]), self.inverter_freq_control_callback)
-        self.logger.info('Subscribed to compressor and inverter control pubsub notifications')
-
-        # Set up the time for the next logging action
-        self._next_log_time = time.monotonic() + self.logging_interval
+        self.initialize_hardware()
 
         # systemctl will wait until this notification is sent
         # Tell systemd that we are ready to run the service
@@ -162,156 +190,133 @@ class CompressorSmaxService:
         # Run the service's main loop
         self.run()
         
-    def smax_set_units(self):
-        """Write units to smax - once only."""
-        self._smax_meta = {"units":{}}
-        for d in self._config["compressor"]["logged_data"].keys():
-            data = self._config["compressor"]["logged_data"][d]
-            unit = None
-            if "units" in data.keys():
-                if data["units"] == "temp":
-                    unit = self.compressor.temp_unit
-                elif data["units"] == "press":
-                    unit = self.compressor.press_unit
-                else:
-                    unit = data["units"]
-            self._smax_meta["units"][d] = unit
-        if self.inverter:
-            for d in self._config["inverter"]["logged_data"].keys():
-                data = self._config["inverter"]["logged_data"][d]
-                unit = None
-                if "units" in data.keys():
-                    unit = data["units"]
-                self._smax_meta["units"][d] = unit
+    def initialize_hardware(self):
+        """Run this code to get initial values for the hardware from SMA-X, and to initialize the hardware"""
         
-        for d in self._smax_meta["units"].keys():
-            if self._smax_meta["units"][d]:
-                self.smax_client.smax_push_meta("units", f"{self.smax_table}:{self.smax_key}:{d}", self._smax_meta["units"][d])
-        self.logger.info("Wrote compressor and inverter metadata to SMAX")
+        initialize_config = self._config["smax_config"]["smax_init_keys"]
+        
+        init_kwargs = {}
+        for smax_key, kw in initialize_config:
+            try:
+                value = self.smax_client.smax_pull(self.smax_table, smax_key)
+            except SmaxKeyError:
+                continue
+            init_kwargs[kw] = value
+        
+        self._hardware.initialize(init_kwargs)
+        
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=_is_smaxconnectionerror)
+    def connect_to_smax(self):
+        """creates a connection to SMA-X that we have to close properly when the
+        service terminates."""
+        try:
+            if self.smax_client is None:
+                self.smax_client = SmaxRedisClient(redis_ip=self.smax_server, redis_port=self.smax_port, redis_db=self.smax_db, program_name=daemon_name, \
+                                                    debug=logging_level==logging.DEBUG, logger=self.logger)
+            else:
+                self.smax_client.smax_connect_to(self.smax_server, self.smax_port, self.smax_db)
+
+            self.logger.status(f'SMA-X client connected to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+        except SmaxConnectionError as e:
+            self.logger.warning(f'Could not connect to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')    
+            raise e
+        
+        # Register pubsub channels specified in config["smax_config"]["control_keys"] to the 
+        # callbacks specified in the config.
+        for k in self.control_keys.keys():
+            self.smax_client.smax_subscribe(join(self.smax_table, self.smax_key, k), callback=getattr(self.hardware, self.control_keys[k]))
+            self.logger.debug(f'connected {getattr(self.hardware, self.control_keys[k])} to {join(self.smax_table, self.smax_key, k)}')
+        self.logger.info('Subscribed to pubsub notifications')
 
     def run(self):
         """Run the main service loop"""
+        
+        # Launch the logging thread as a daemon so that it can be shut down quickly
+        self.logging_thread = threading.Thread(target=self.logging_loop, daemon=True, name='Logging')
+        self.logging_thread.start()
+        
+        self.logger.status("Started logging thread")
+        
         try:
             while True:
-                # Put the service's regular activities here
-                self.smax_logging_action()
-                time.sleep(self.logging_interval)
+                time.sleep(self.delay)
 
         except KeyboardInterrupt:
             # Monitor for SIGINT, which we've set as the terminate signal in the
             # .service file
-            self.logger.warning('SIGINT (keyboard interrupt) received...')
+            self.logger.status('SIGINT (keyboard interrupt) received...')
             self.stop()
+            
+    def logging_loop(self):
+        """The loop that will run in the thread to carry out logging"""
+        while True:
+            self.logger.debug("tick")
+            next_log_time = time.monotonic() + self.logging_interval
+            try:
+                self.smax_logging_action()
+            except Exception as e:
+                pass
 
+            # Try to run on a regular schedule, but if smax_logging_action takes too long,
+            # just wait logging_interval between finishing one smax_logging_action and starting next.
+            curr_time = time.monotonic()
+            if next_log_time > curr_time:
+                time.sleep(next_log_time - curr_time)
+            else:
+                time.sleep(self.logging_interval)
+                
+        
     def smax_logging_action(self):
         """Run the code to write logging data to SMAX"""
+        # If we've lost the connection, lets reconnect
+        # This will hang until a connection happens - this doesn't
+        # cost us anything, as we need an SMA-X connection to
+        # to do anything with the hardware.
         # Gather data
-        logged_data = {}
-        compressor_error = False
-        inverter_error = False
+        self.logger.debug("In logging action")
         
-        try:
-            self.compressor.update()
-        except:
-            self.logger.warning("Initial attempt at updating compressor failed. Retrying.")
-            time.sleep(0.5)
-            try:
-                self.compressor.update()
-            except:
-                self.logger.error("Could not get update from compressor.")
-                compressor_error = True
-            
-        if self.inverter:
-            try:
-                self.inverter.update()
-            except:
-                self.logger.warning("Initial attempt at updating inverter failed. Retrying.")
-                time.sleep(0.5)
-                try:
-                    self.inverter.update()
-                except:
-                    self.logger.error("Could not get update from inverter.")
-                    inverter_error = True
-        
-        # Read the values from the compressor
-        if not compressor_error:
-            for data in self._compressor_data.keys():
-                reading = self.compressor.__getattribute__(data)
-                logged_data[data] = reading
-                self.logger.info(f'Got data for compressor {data}: {reading}')
-                logged_data['compressor_comms_status'] = "good"
-        else:
-            logged_data['compressor_comms_status'] = "stale"
-            
-        if self.inverter:
-            if not inverter_error:
-                for data in self._inverter_data.keys():
-                    reading = self.inverter.__getattribute__(data)
-                    logged_data[":".join(['inverter', data])] = reading
-                    self.logger.info(f'Got data for inverter {data}: {reading}')
-                    logged_data['inverter_comms_status'] = "good"
-            else:
-                logged_data['inverter_comms_status'] = "stale"
+        if self.smax_client is None:
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+            self.connect_to_smax()
                 
-        # write values to SMAX
-        for key in logged_data.keys():
-            self.logger.info(f"key in logged_data.keys(): {key}")
-            if ":" in key:
-                ls = [self.smax_key]
-                ls.extend(key.split(":")[0:-1])
-                atab = ":".join(ls)
-                skey = key.split(":")[-1]
-            else:
-                atab = self.smax_key
-                skey = key
-            self.smax_client.smax_share(f"{self.smax_table}:{atab}", skey, logged_data[key])
-        self.logger.info(f'Wrote compressor and inverter data to SMAX ')
-        
-        
-    def compressor_power_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_heater_key"""
-        date = datetime.datetime.utcfromtimestamp(message.date)
-        self.logger.info(f'Received PubSub notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
-        
-        if message.data:
-            self.compressor.on()
-            self.logger.info("Turning compressor on")
-        else:
-            self.compressor.off()
-            self.logger.info("Turning compressor off")
+        logged_data = self.hardware.logging_action()
+
+        self.logger.status(f"Received data for {len(logged_data)} keys.")    
+        # write values to SMA-X
+        # Retry if connection is missing
+        try:
+            for k in logged_data.keys():
+                self.logger.debug(f"key in logged_data.keys(): {k}")
+                table, key = normalize_pair(join(self.smax_table, self.smax_key), k)
+                self.smax_client.smax_share(table, key, logged_data[k])
+            self.logger.status(f'Wrote hardware data to SMAX ')
+        except SmaxConnectionError:
+            self.logger.warning(f'Lost SMA-X connection to {self.smax_server}:{self.smax_port} DB:{self.smax_db}')
+            self.connect_to_smax()
+            self.smax_logging_action()
             
-    def inverter_freq_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_heater_key"""
-        date = datetime.datetime.utcfromtimestamp(message.date)
-        self.logger.info(f'Received PubSub notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
-        
-        freq = float(message.data)
-        
-        if freq >= 40.0 and freq <= 70.0:
-            self.inverter.set_frequency(freq)
-            self.logger.info("Set inverter frequency to {freq} Hz")
-        else:
-            self.logger.warning(f'Commanded inverter frequency {freq} is out of range')
-        
+    def _handle_sigterm(self, sig, frame):
+        self.logger.info('SIGTERM received...')
+        self.stop()
+
     def stop(self):
         """Clean up after the service's main loop"""
         # Tell systemd that we received the stop signal
         systemd.daemon.notify(STOPPING)
 
+        self.logger.status('Cleaning up...')
+        
+        # Clean up the hardware
+        self.logger.status('Disconnecting hardware...')
+        self.hardware.disconnect_hardware()
+
         # Put the service's cleanup code here.
-        self.logger.info('Cleaning up...')
         if self.smax_client:
             self.smax_client.smax_unsubscribe()
             self.smax_client.smax_disconnect()
-            self.logger.info('SMA-X client disconnected')
+            self.logger.status('SMA-X client disconnected')
         else:
-            self.logger.error('SMA-X client not found, nothing to clean up')
-            
-        if self.compressor:
-            self.compressor.disconnect()
-            
-        if self.inverter:
-            self.inverter.disconnect()
+            self.logger.warning('SMA-X client not found, nothing to clean up')
 
         # Exit to finally stop the serivce
         sys.exit(0)
@@ -319,6 +324,5 @@ class CompressorSmaxService:
 
 if __name__ == '__main__':
     # Do start up stuff
-    args = sys.argv[1:]
-    service = CompressorSmaxService(*args)
+    service = CompressorSmaxService()
     service.start()
