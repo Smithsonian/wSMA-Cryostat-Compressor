@@ -196,14 +196,14 @@ class CompressorSmaxService:
         initialize_config = self._config["smax_config"]["smax_init_keys"]
         
         init_kwargs = {}
-        for smax_key, kw in initialize_config:
+        for smax_key, kw in initialize_config.items():
             try:
                 value = self.smax_client.smax_pull(self.smax_table, smax_key)
             except SmaxKeyError:
                 continue
             init_kwargs[kw] = value
         
-        self._hardware.initialize(init_kwargs)
+        self.hardware.initialize_hardware(init_kwargs)
         
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=_is_smaxconnectionerror)
     def connect_to_smax(self):

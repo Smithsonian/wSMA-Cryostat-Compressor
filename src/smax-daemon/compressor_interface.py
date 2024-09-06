@@ -110,9 +110,12 @@ class CompressorInterface:
             self._inverter_config = None
             
             
-        self.logger.debug(f"Connecting to {self._serial_server}:{self._tic_port}")
+        self.logger.debug(f"Connecting to {self._compressor_ip}:{self._compressor_port}")
         if self._inverter_config:
-            self.logger.debug(f"Inverter {self._inverter_config["inverter_type"]} @ {self._inverter_config["ip_address"]}:{self._inverter_config.get("port", default_port)}")
+            self.logger.debug("Inverter {} @ {}:{}".format( \
+                                self._inverter_config["inverter_type"], \
+                                self._inverter_config.get("ip_address", None),
+                                self._inverter_config.get("port", default_port)))
         try:
             with self._hardware_lock:
                 self._hardware = Compressor( \
@@ -134,7 +137,7 @@ class CompressorInterface:
             self._hardware_error = repr(e)
             self.logger.error(f"Failed to connect to compressor at {self._compressor_ip} with error {e}.")
             
-    def initialize_hardware(self, **kwargs):
+    def initialize_hardware(self, kwargs):
         """Set the initial inverter frequency on daemon startup.  If a frequency
         is not supplied, read it from the hardware config."""
         if not "frequency" in kwargs:
@@ -207,7 +210,7 @@ class CompressorInterface:
         
 
     def compressor_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_compressor_control_key"""
+        """Run on a pubsub notification to smax_table:compressor:compressor_control_key"""
         if self.logger:
             date = message.timestamp
             self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')
@@ -234,8 +237,8 @@ class CompressorInterface:
             if self.logger:
                 self.logger.status(f'{message.origin} tried to set system state to {message.data}, but no hardware connected.')
     
-    def inverter_control_callback(self, message):
-        """Run on a pubsub notification to smax_table:smax_inverter_freq_control_key"""
+    def frequency_control_callback(self, message):
+        """Run on a pubsub notification to smax_table:compressor:frequency_control_key"""
         if self.logger:
             date = message.timestamp
             self.logger.info(f'Received callback notification for {message.smaxname} from {message.origin} with data {message.data} at {date}')

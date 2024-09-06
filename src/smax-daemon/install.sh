@@ -46,13 +46,13 @@ fi
 chmod -R 755 $CONFIG
 chown -R smauser:smauser $CONFIG
 
-read -p "Enable compressor-smax-daemon at this time? " -n 1 -r
+read -p "Enable compressor_smax_daemon at this time? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     systemctl daemon-reload
-    systemctl enable compressor-smax-daemon
-    systemctl restart compressor-smax-daemon
+    systemctl enable compressor_smax_daemon
+    systemctl restart compressor_smax_daemon
 fi
 
 exit

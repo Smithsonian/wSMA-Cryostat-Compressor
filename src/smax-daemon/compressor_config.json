@@ -5,20 +5,18 @@
         "smax_key":"compressor",
         "smax_control_keys":{
             "compressor_control_key":"compressor_control_callback",
-            "inverter_frequency_control_key":"frequency_control_callback"
+            "frequency_control_key":"frequency_control_callback"
         },
         "smax_init_keys":{
             "inverter_frequency_control_key":"frequency"
         }
     },
     "config":{
-        "serial_server":"serial-p2",
         "compressor":{
-            "ip_address":"compressor-p2"
+            "ip_address":"compressor-wsma2"
         },
         "inverter":{
-            "inverter_type":"rs485_ethernet",
-            "inverter_ip":"inverter-p2",
+            "inverter_type":"internal",
             "frequency":60
         }
     },
@@ -30,29 +28,19 @@
         "warnings":{"type":"str" },
         "error_code":{"type":"int" },
         "errors":{"type":"str" },
-        "coolant_in":{"units":"temp"},
-        "coolant_out":{"units":"temp"},
-        "oil_temp":{"units":"temp"},
-        "helium_temp":{"units":"temp"},
-        "low_pressure":{"units":"press"},
-        "low_pressure_average":{"units":"press"},
-        "high_pressure":{"units":"press"},
-        "high_pressure_average":{"units":"press"},
-        "delta_pressure_average":{"units":"press"},
-        "hours":{},
-        "inverter":{
-            "frequency":{
-                "units":"Hz"
-            },
-            "current":{
-                "units":"A"
-            },
-            "voltage":{
-                "units":"V"
-            },
-            "power":{
-                "units":"kW"
-            }
-        }
+        "coldhead_rpm":{"type":"float", "unit":"RPM"},
+        "coolant_in":{"unit":"temp"},
+        "coolant_out":{"unit":"temp"},
+        "oil_temp":{"unit":"temp"},
+        "helium_temp":{"unit":"temp"},
+        "low_pressure":{"unit":"press"},
+        "low_pressure_average":{"unit":"press"},
+        "high_pressure":{"unit":"press"},
+        "high_pressure_average":{"unit":"press"},
+        "delta_pressure_average":{"unit":"press"},
+        "hours":{"unit":"hours"},
+        "inverter_freq":{"unit":"Hz"},
+        "inverter_curr":{"unit":"A"}
     }
 }
+
