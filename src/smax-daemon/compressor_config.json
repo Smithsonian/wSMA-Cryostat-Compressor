@@ -8,7 +8,7 @@
             "frequency_control_key":"frequency_control_callback"
         },
         "smax_init_keys":{
-            "inverter_frequency_control_key":"frequency"
+            "frequency_control_key":"frequency"
         }
     },
     "config":{

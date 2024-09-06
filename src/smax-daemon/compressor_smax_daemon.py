@@ -19,12 +19,6 @@ default_config = os.path.expanduser("~smauser/wsma_config/cryostat/compressor/co
 daemon_name = "compressor_smax_daemon"
 from compressor_interface import CompressorInterface as HardwareInterface
 
-# Change between testing and production
-logging_level = logging.DEBUG
-#logging_level = logging.WARNING
-
-logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
-
 # add a logging level for status output
 def add_logging_level(level_name, level_num, method_name=None):
     """
@@ -76,6 +70,11 @@ def add_logging_level(level_name, level_num, method_name=None):
     setattr(logging, method_name, logToRoot)
     
 add_logging_level('STATUS', logging.WARNING+5)
+
+# Change between testing and production
+logging_level = logging.WARNING
+
+logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
@@ -198,7 +197,7 @@ class CompressorSmaxService:
         init_kwargs = {}
         for smax_key, kw in initialize_config.items():
             try:
-                value = self.smax_client.smax_pull(self.smax_table, smax_key)
+                value = self.smax_client.smax_pull(join(self.smax_table, self.smax_key), smax_key)
             except SmaxKeyError:
                 continue
             init_kwargs[kw] = value
