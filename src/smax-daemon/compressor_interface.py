@@ -46,6 +46,8 @@ class CompressorInterface:
         self._hardware_error = 'No connection attempted'
         self._hardware_data = {}
         
+        self._inverter_config = None
+        
         self.logger = logger
         
         if config:
@@ -73,6 +75,8 @@ class CompressorInterface:
         
         if 'config' in config.keys():
             self._hardware_config = config['config']
+            if "inverter" in self._hardware_config.keys():
+                self._inverter_config = self._hardware_config["inverter"]   
             
         if 'logged_data' in config.keys():
             self._hardware_data = flatten_logged_data(config['logged_data'])
@@ -92,24 +96,24 @@ class CompressorInterface:
             self._compressor_port = self._hardware_config["port"]
         else:
             self._compressor_port = default_port
-        
-        if "inverter" in self._hardware_config.keys():
-            inverter_config = self._hardware_config["inverter"]    
-        else: 
-            inverter_config = None
-            
             
         self.logger.debug(f"Connecting to {self._serial_server}:{self._tic_port}")
         try:
             with self._hardware_lock:
-                self._hardware = 
+                if self._inverter_config:
+                    self._hardware = Compressor( \
+                        self._compressor_ip, \
+                        self._compressor_port, \
+                        inverter=self._inverter_config.get("inverter", "rs485_ethernet") , \
+                        inverter_address=self._inverter_config["inverter_ip"], \
+                        inverter_port=self._inverter_config.get("inverter_port", default_port))
+                else:
+                    self._hardware = Compressor(self._compressor_ip, self._compressor_port)
                 self._hardware_error = "None"
                 self.logger.debug(f"Connected")
                 if self._hardware and self._hardware_config:
                     try:   
-                        self._hardware.configure(self._hardware_config)
-                    except AttributeError:
-                        pass
+                        self.configure_hardware(self._hardware_config)
                     
         except Exception as e: # Hardware connection errors
             self._hardware = None

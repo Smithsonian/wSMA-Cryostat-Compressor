@@ -943,7 +943,7 @@ class Compressor(object):
 
     def _get_state(self):
         """Read the current state of the compressor."""
-        self._state = self._read_input_register(self._operating_state_addr)
+        self._state = self._read_int16(self._operating_state_addr)
 
     def get_state(self):
         """Read the current state of the compressor.
@@ -955,7 +955,7 @@ class Compressor(object):
 
     def _get_enabled(self):
         """Read the current Enable state of the compressor"""
-        self._enabled = self._read_input_register(self._enabled_addr)
+        self._enabled = self._read_int16(self._enabled_addr)
 
     def get_enabled(self):
         """Read the current Enable state of the compressor.
