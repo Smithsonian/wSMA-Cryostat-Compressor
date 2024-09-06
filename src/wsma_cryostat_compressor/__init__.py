@@ -403,7 +403,7 @@ class Compressor(object):
         #           7: Error
         #           8: Helium cool down
         #           9: Power related error
-        #           15: Recovered from error
+        #           15 or 16: Recovered from error
         self._state = 0
 
         #: int: Current power state of the compressor
@@ -587,7 +587,7 @@ class Compressor(object):
                     7: Error
                     8: Helium cool down
                     9: Power related error
-                    15: Recovered from error"""
+                    15 or 16: Recovered from error"""
         return self._state
 
     @property
