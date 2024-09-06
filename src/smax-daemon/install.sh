@@ -16,7 +16,7 @@ mkdir -p "$CONFIG/cryostat/compressor"
 
 cp "./compressor_smax_daemon.py" $INSTALL
 cp "./compressor_interface.py" $INSTALL
-cp "./compressor_smax_daemon.service" $SYSDUSER
+cp "./compressor_smax_daemon.service" $INSTALL
 cp "./on_start.sh" $INSTALL
 
 chmod -R 755 $INSTALL
