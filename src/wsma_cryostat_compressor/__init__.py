@@ -37,7 +37,7 @@ def _status_to_string(status_code):
         str_return = 'Helium Overtemp: waiting to cool down'
     elif 9 == status_code:
         str_return = 'Power Related Error'
-    elif 15 == status_code or 16 == status_code:
+    elif (15 == status_code) or (16 == status_code):
         # Inconsistency between manuals for v2 and v3 software
         # Our v2 CP286i compressor uses 16 although manual says 15
         str_return = 'Recovered From Error'
