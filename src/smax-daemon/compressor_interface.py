@@ -168,6 +168,8 @@ class CompressorInterface:
         if self._hardware:
             try:
                 with self._hardware_lock:
+                    self._hardware.update()
+                    
                     logged_data = {}
                     # do logging gets
                     for data in self._hardware_data.keys():
