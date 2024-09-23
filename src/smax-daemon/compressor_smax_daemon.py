@@ -72,7 +72,7 @@ def add_logging_level(level_name, level_num, method_name=None):
 add_logging_level('STATUS', logging.WARNING+5)
 
 # Change between testing and production
-logging_level = logging.DEBUG
+logging_level = logging.WARNING
 
 logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
