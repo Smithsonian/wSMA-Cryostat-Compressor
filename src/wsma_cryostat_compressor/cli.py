@@ -14,12 +14,13 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
-__version__ = '0.2.0'
-
+import os
 import argparse
+
 import wsma_cryostat_compressor
 
-default_ip = '192.168.42.12'
+default_ip = os.environ.get("COMPRESSOR_IP", None)
+default_inverter = os.environ.get("INVERTER_IP", None)
 
 parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "
                                              "digital control panel.")
@@ -27,23 +28,40 @@ parser = argparse.ArgumentParser(description="Communicate with a Cryomech compre
 parser.add_argument("-v", "--verbosity", action="store_true",
                     help="Display detailed output from compressor")
 parser.add_argument("-a", "--address", default=default_ip,
-                    help="The IP address of the compressor")
+                    help="The IP address of the compressor, defaults to $COMPRESSOR_IP")
+parser.add_argument("-i", "--inverter_address", default=default_inverter,
+                    help="The IP address of the compressor's inverter, defaults to $INVERTER_IP")
+
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--on", action="store_true", help="Turn the compressor on")
 group.add_argument("--off", action="store_true", help="Turn the compressor off")
+
+parser.add_argument("-f", "--freq", default=None, help="Set the inverter frequency")
 
 
 def main(args=None):
     args = parser.parse_args(args=args)
 
     # Create the compressor object for communication with the controller
-    # If address is 0.0.0.0, create a dummy compressor for testing purposes.
-    if args.address == "0.0.0.0":
+    # If address is 'test', create a dummy compressor for testing purposes.
+    if args.address == "test":
         print(args)
         return None
         # comp = wsma_cryostat_compressor.DummyCompressor()
+    elif args.address is None:
+        print("Compressor address not given")
+        print()
+        parser.print_help()
     else:
-        comp = wsma_cryostat_compressor.Compressor(ip_address=args.address)
+        if args.inverter_address:
+            if args.inverter_address.startswith("/dev/tty") or args.inverter_address.startswith("COM"):
+                inverter = 'rs485'
+            else:
+                inverter = 'rs485_ethernet'
+        else:
+            # v3 software compressors with internal inverter will be detected automatically
+            inverter = None
+        comp = wsma_cryostat_compressor.Compressor(ip_address=args.address, inverter=inverter, inverter_address=args.inverter_address)
 
         if args.verbosity:
             comp.verbose = True
@@ -90,6 +108,12 @@ def main(args=None):
             if args.verbosity:
                 print()
                 print(comp.status)
+                
+        elif args.freq:
+            if comp.inverter:
+                comp.set_inverter_freq(float(args.freq))
+            else:
+                print("Inverter not present")
 
         else:
             print(comp)

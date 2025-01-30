@@ -1,0 +1,46 @@
+{
+    "logging_interval":30,
+    "smax_config":{
+        "smax_table":"cryostat",
+        "smax_key":"compressor",
+        "smax_control_keys":{
+            "compressor_control_key":"compressor_control_callback",
+            "frequency_control_key":"frequency_control_callback"
+        },
+        "smax_init_keys":{
+            "frequency_control_key":"frequency"
+        }
+    },
+    "config":{
+        "compressor":{
+            "ip_address":"compressor-wsma2"
+        },
+        "inverter":{
+            "inverter_type":"internal",
+            "frequency":60
+        }
+    },
+    "logged_data":{
+        "enabled":{"type":"int" },
+        "state_code":{"type":"int" },
+        "state":{"type":"str" },
+        "warning_code":{"type":"int" },
+        "warnings":{"type":"str" },
+        "error_code":{"type":"int" },
+        "errors":{"type":"str" },
+        "coldhead_rpm":{"type":"float", "unit":"RPM"},
+        "coolant_in":{"unit":"temp"},
+        "coolant_out":{"unit":"temp"},
+        "oil_temp":{"unit":"temp"},
+        "helium_temp":{"unit":"temp"},
+        "low_pressure":{"unit":"press"},
+        "low_pressure_average":{"unit":"press"},
+        "high_pressure":{"unit":"press"},
+        "high_pressure_average":{"unit":"press"},
+        "delta_pressure_average":{"unit":"press"},
+        "hours":{"unit":"hours"},
+        "inverter_freq":{"unit":"Hz"},
+        "inverter_curr":{"unit":"A"}
+    }
+}
+
