@@ -4,11 +4,11 @@
         "smax_table":"cryostat",
         "smax_key":"compressor",
         "smax_control_keys":{
-            "compressor_control_key":"compressor_control_callback",
-            "frequency_control_key":"frequency_control_callback"
+            "compressor_control":"compressor_control_callback",
+            "frequency_control":"frequency_control_callback"
         },
         "smax_init_keys":{
-            "frequency_control_key":"frequency"
+            "frequency_control":"frequency"
         }
     },
     "config":{
