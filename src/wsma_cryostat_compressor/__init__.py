@@ -800,7 +800,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            result = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.FLOAT32, word_order='little')
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.FLOAT32, word_order='little')
 
             return result
         
@@ -817,7 +817,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            result = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT32, word_order='little')
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT32, word_order='little')
 
             return result
         
@@ -834,7 +834,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            result = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT16, word_order='little')
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT16, word_order='little')
             return result
         
     def _read_int8s(self, addr):
