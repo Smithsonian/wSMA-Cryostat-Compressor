@@ -850,9 +850,10 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            result = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT8, word_order='little')
-
-            return result
+            temp = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT16, word_order='little')
+            c = (temp >> 8) & 0xff
+            f = temp & 0xff
+            return c, f
 
     def update(self):
         """Read current values from all input registers."""
