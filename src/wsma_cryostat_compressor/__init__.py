@@ -1271,7 +1271,7 @@ class Compressor(object):
 
         Returns:
             str: serial number from the compressor"""
-        r = self._client.read_input_registers(self._serial_addr, 1, slave=1)
+        r = self._client.read_input_registers(self._serial_addr, count=1, slave=1)
         self._serial = r.registers[0]
         return self.serial
 
@@ -1280,7 +1280,7 @@ class Compressor(object):
 
         Returns:
             str: model name from the compressor"""
-        r = self._client.read_input_registers(self._model_addr, 2, slave=1)
+        r = self._client.read_input_registers(self._model_addr, count=2, slave=1)
         model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
         self._model = model
         return self.model
