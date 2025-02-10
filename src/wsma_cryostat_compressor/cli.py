@@ -19,18 +19,18 @@ import argparse
 
 import wsma_cryostat_compressor
 
-default_ip = os.environ.get("COMPRESSOR_IP", None)
-default_inverter = os.environ.get("INVERTER_IP", None)
+default_compressor = os.environ.get("WSMACOMPRESSOR", None)
+default_inverter = os.environ.get("WSMAINVERTER", None)
 
 parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "
                                              "digital control panel.")
 
 parser.add_argument("-v", "--verbosity", action="store_true",
                     help="Display detailed output from compressor")
-parser.add_argument("-a", "--address", default=default_ip,
-                    help="The IP address of the compressor, defaults to $COMPRESSOR_IP")
+parser.add_argument("-a", "--address", default=default_compressor,
+                    help="The IP address of the compressor, defaults to $WSMACOMPRESSOR")
 parser.add_argument("-i", "--inverter_address", default=default_inverter,
-                    help="The IP address of the compressor's inverter, defaults to $INVERTER_IP")
+                    help="The IP address of the compressor's inverter, defaults to $WSMAINVERTER")
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--on", action="store_true", help="Turn the compressor on")
