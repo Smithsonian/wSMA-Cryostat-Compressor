@@ -4,8 +4,6 @@ import os
 from time import sleep
 
 from pymodbus.client import ModbusTcpClient
-from pymodbus.payload import BinaryPayloadDecoder
-from pymodbus.constants import Endian
 
 from . import inverter
 
@@ -802,8 +800,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
-            result = decoder.decode_32bit_float()
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.FLOAT32, word_order='little')
 
             return result
         
@@ -820,8 +817,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
-            result = decoder.decode_32bit_int()
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT32, word_order='little')
 
             return result
         
@@ -838,9 +834,7 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
-            result = decoder.decode_16bit_int()
-
+            result = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT16, word_order='little')
             return result
         
     def _read_int8s(self, addr):
@@ -856,11 +850,10 @@ class Compressor(object):
         if r.isError():
             raise RuntimeError("Could not read register {}".format(addr))
         else:
-            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
-            result1 = decoder.decode_8bit_int()
-            result2 = decoder.decode_8bit_int()
-
-            return result1, result2
+            temp = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT16, word_order='little')
+            c = (temp >> 8) & 0xff
+            f = temp & 0xff
+            return c, f
 
     def update(self):
         """Read current values from all input registers."""
