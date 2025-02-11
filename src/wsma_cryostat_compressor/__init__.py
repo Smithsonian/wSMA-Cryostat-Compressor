@@ -1191,7 +1191,8 @@ class Compressor(object):
         if self._inverter is None:
             return None
         elif self._inverter=="internal":
-            self._client.write_registers(self._inverter_set_freq_addr, int(freq*10), slave=1)
+            registers = self._client.convert_to_registers(int(freq*10), self._client.DATATYPE.INT16, word_order="little")
+            self._client.write_registers(self._inverter_set_freq_addr, registers, slave=1)
         elif self._inverter=="rs485":
             self._inverterclient.set_frequency(freq)
         else:
@@ -1289,7 +1290,7 @@ class Compressor(object):
 
     def on(self):
         """Turn the compressor on."""
-        w = self._client.write_registers(self._enable_addr, 0x0001, slave=1)
+        w = self._client.write_registers(self._enable_addr, [0x0001], slave=1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn on")
         else:
@@ -1305,7 +1306,7 @@ class Compressor(object):
 
     def off(self):
         """Turn the compressor off."""
-        w = self._client.write_registers(self._enable_addr, 0x00FF, slave=1)
+        w = self._client.write_registers(self._enable_addr, [0x00FF], slave=1)
         if w.isError():
             raise RuntimeError("Could not command compressor to turn off")
         else:
