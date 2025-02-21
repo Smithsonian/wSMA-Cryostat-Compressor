@@ -1,4 +1,4 @@
-# lakeshore-smax-daemon
+# compressor-smax-daemon
 
 A user space systemd service implemented in Python that reads values from the wSMA cryostat compressor control and readout, and writes the data to SMAx.
 
@@ -14,3 +14,4 @@ Requires:
 systemd-python (in turn requires linux packages systemd-devel, gcc, python3-devel)
 psutils
 smax-python
+wsma_cryostat_compressor
