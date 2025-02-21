@@ -370,6 +370,8 @@ class Compressor(object):
         self._inverter_address = inverter_address
         self._inverter_port = inverter_port
         
+        self.connect()
+        
         # Determine the compressor type, and populate the register
         # numbers appropriately
         

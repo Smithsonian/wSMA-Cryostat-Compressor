@@ -30,7 +30,7 @@ def _is_modbus_io_error(exception):
     return isinstance(exception, ModbusIOException)
 
 class Inverter(object):
-    """Class for communicating with the wSMA Compressor controller.
+    """Class for communicating with the Inverter controller.
 
     The Inverter object wraps a pymodbus.ModbusTcpClient instance which
     communicates with the TCP/IP Modbus client on the RS485 server attached
@@ -198,9 +198,7 @@ class Inverter(object):
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
         r = self._read_registers(self._frequency_addr, count=2, unit=1)
-        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
-        result = decoder.decode_16bit_int()
-        self._frequency = result
+        self._frequency = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT32, word_order='little')
 
     def _get_current(self):
         """Get the output current from the inverter"""
@@ -228,10 +226,8 @@ class Inverter(object):
         
     def _get_frequency_setting(self):
         """Get the set output frequency of the inverter."""
-        decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.BIG, wordorder=Endian.BIG)
-        self._frequency_setting = decoder.decode_16bit_int()
-        
-        
+        r = self._read_registers(self._frequency_control_addr, count=2, unit=1)
+        self._frequency_setting = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT32, word_order='little')
 
     def get_frequency(self):
         """Get current frequency from the inverter and return the value.

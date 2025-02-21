@@ -16,6 +16,7 @@
             "ip_address":"compressor-wsma2"
         },
         "inverter":{
+            "ip_address":"inverter-proto1",
             "inverter_type":"internal",
             "frequency":60
         }
