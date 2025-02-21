@@ -7,8 +7,9 @@
 # 06/29/2023
 #
 
-USER_LOCAL_LIB="/usr/local/lib"
-INSTALL="$USER_LOCAL_LIB/compressor_smax_daemon"
+SERVICE=compressor-smax-daemon
+USER_LOCAL_LIB="/opt/wSMA"
+INSTALL="$USER_LOCAL_LIB/$SERVICE
 CONFIG="/home/smauser/wsma_config"
 
 mkdir -p $INSTALL
@@ -16,13 +17,13 @@ mkdir -p "$CONFIG/cryostat/compressor"
 
 cp "./compressor_smax_daemon.py" $INSTALL
 cp "./compressor_interface.py" $INSTALL
-cp "./compressor_smax_daemon.service" $INSTALL
+cp "./$SERVICE.service" $INSTALL
 cp "./on_start.sh" $INSTALL
 
 chmod -R 755 $INSTALL
 chown -R smauser:smauser $INSTALL
 
-ln -s "$INSTALL/compressor_smax_daemon.service" "/etc/systemd/system/compressor_smax_daemon.service"
+ln -s "$INSTALL/$SERVICE.service" "/etc/systemd/system/$SERVICE.service"
 
 if ! test -f "$CONFIG/smax_config.json"
 then
@@ -46,13 +47,12 @@ fi
 chmod -R 755 $CONFIG
 chown -R smauser:smauser $CONFIG
 
-read -p "Enable compressor_smax_daemon at this time? " -n 1 -r
+read -p "Enable $SERVICE at this time? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     systemctl daemon-reload
-    systemctl enable compressor_smax_daemon
-    systemctl restart compressor_smax_daemon
+    systemctl enable $SERVICE
 fi
 
 exit
