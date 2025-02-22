@@ -7,7 +7,7 @@
 # 06/29/2023
 #
 
-SERVICE=compressor-smax-daemon
+SERVICE=compressor_smax_daemon
 USER_LOCAL_LIB="/opt/wSMA"
 INSTALL="$USER_LOCAL_LIB/$SERVICE
 CONFIG="/home/smauser/wsma_config"
