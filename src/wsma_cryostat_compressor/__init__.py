@@ -546,8 +546,9 @@ class Compressor(object):
         
         # Try this once, but if the default settings are wrong,
         # it won't work.
-        if self._inverter.startswith('rs485'):
-            self.connect_inverter()
+        if self._inverter is not None:
+            if self._inverter.startswith('rs485'):
+                self.connect_inverter()
         
     def connect_inverter(self, unit=1, serial_conf=None):
         """Connect to the inverter if required.
