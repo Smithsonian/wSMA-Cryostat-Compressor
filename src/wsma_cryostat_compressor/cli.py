@@ -31,7 +31,7 @@ parser.add_argument("-a", "--address", default=default_compressor,
                     help="The IP address of the compressor, defaults to $WSMACOMPRESSOR")
 parser.add_argument("-i", "--inverter_address", default=default_inverter,
                     help="The IP address of the compressor's inverter, defaults to $WSMAINVERTER")
-parser.add_argument("--debug", type=bool, default=False)
+parser.add_argument("--debug", action="store_true")
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--on", action="store_true", help="Turn the compressor on")
@@ -64,7 +64,7 @@ def main(args=None):
         else:
             # v3 software compressors with internal inverter will be detected automatically
             inverter = None
-        comp = wsma_cryostat_compressor.Compressor(ip_address=args.address, inverter=inverter, inverter_address=args.inverter_address)
+        comp = wsma_cryostat_compressor.Compressor(ip_address=args.address, inverter=inverter, inverter_address=args.inverter_address, debug=args.debug)
 
         if args.verbosity:
             comp.verbose = True

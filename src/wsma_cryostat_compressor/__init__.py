@@ -344,7 +344,7 @@ class Compressor(object):
     #: int: address of the controller's Software rev register
     _software_addr = 33
 
-    def __init__(self, ip_address=default_IP, port=default_port, inverter=None, inverter_address=None, inverter_port=None):
+    def __init__(self, ip_address=default_IP, port=default_port, inverter=None, inverter_address=None, inverter_port=None, debug=False):
         """Create a Compressor object for communication with one Compressor Digital Panel controller.
 
         Opens a Modbus TCP connection to the Compressor Digital Panel controller at `ip_address`, and reads the
@@ -359,6 +359,12 @@ class Compressor(object):
                                     com port address (rs485) or IP address (rs485_ethernet)
             inverter_port (int or None): port number for rs485_ethernet server.
         """
+        
+        if debug:
+            print(f"Inverter      : {inverter}")
+            print(f"Inverter IP   : {inverter_address}")
+            print(f"Inverter Port : {inverter_port}")
+        
         #: (:obj:`ModbusTcpClient`): Client for communicating with the controller
         self._client = ModbusTcpClient(ip_address, port=port)
 
