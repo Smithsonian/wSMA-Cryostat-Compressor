@@ -1233,7 +1233,7 @@ class Compressor(object):
             curr = self._read_int16(self._inverter_curr_addr)
             self._inverter_curr = curr/10.
         elif self._inverter.startswith("rs485"):
-            self._inverterclient.get_currrent()
+            self._inverterclient.get_current()
         else:
             pass
 
