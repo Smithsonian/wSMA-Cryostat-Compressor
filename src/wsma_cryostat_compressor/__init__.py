@@ -344,7 +344,7 @@ class Compressor(object):
     #: int: address of the controller's Software rev register
     _software_addr = 33
 
-    def __init__(self, ip_address=default_IP, port=default_port, inverter=None, inverter_address=None, inverter_port=None, debug=False):
+    def __init__(self, ip_address=default_IP, port=default_port, inverter=None, inverter_address=None, inverter_port=502, debug=False):
         """Create a Compressor object for communication with one Compressor Digital Panel controller.
 
         Opens a Modbus TCP connection to the Compressor Digital Panel controller at `ip_address`, and reads the
