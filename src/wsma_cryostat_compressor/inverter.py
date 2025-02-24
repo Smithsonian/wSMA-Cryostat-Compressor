@@ -101,6 +101,7 @@ class Inverter(object):
         if self._address.startswith("/dev") or self._address.startswith("COM"):
             try:
                 self._client = ModbusSerialClient(self._inverter_address, **self._serial_conf)
+                self._client.connect()
             except:
                 pass
         else:
