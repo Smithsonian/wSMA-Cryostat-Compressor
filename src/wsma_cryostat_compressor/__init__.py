@@ -1188,7 +1188,7 @@ class Compressor(object):
             freq = self._read_int16(self._inverter_set_freq_addr)
             self._inverter_set_freq = freq/10.
         elif self._inverter.startswith("rs485"):
-            self._inverterclient.get_frequency_setting(freq)
+            self._inverter_set_freq = self._inverterclient.get_frequency_setting(freq)
         
     def get_inverter_freq_setting(self):
         """Read and return the inverter set frequency"""
@@ -1216,7 +1216,7 @@ class Compressor(object):
             freq = self._read_int16(self._inverter_freq_addr)
             self._inverter_freq = freq/10.
         elif self._inverter.startswith("rs485"):
-            self._inverterclient.get_frequency()
+            self._inverter_freq = self._inverterclient.get_frequency()
         else:
             pass
         
@@ -1233,7 +1233,7 @@ class Compressor(object):
             curr = self._read_int16(self._inverter_curr_addr)
             self._inverter_curr = curr/10.
         elif self._inverter.startswith("rs485"):
-            self._inverterclient.get_current()
+            self._inverter_curr = self._inverterclient.get_current()
         else:
             pass
 
