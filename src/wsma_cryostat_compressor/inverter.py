@@ -90,6 +90,8 @@ class Inverter(object):
 
         self.verbose = False
 
+        self.connect()
+
         # Get the data from the inverter
         self.update()
         
@@ -107,7 +109,6 @@ class Inverter(object):
         else:
             self._client = ModbusTcpClient(self._address, port=self._port)
             self._client.connect()
-
 
     @property
     def frequency(self):
