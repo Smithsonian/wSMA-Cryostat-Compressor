@@ -99,8 +99,8 @@ class CompressorInterface:
         
         if "inverter" in self._hardware_config.keys():
             self._inverter_config = self._hardware_config["inverter"]
+            address = self._inverter_config.get("ip_address", None)
             if "inverter_type" not in self._inverter_config:
-                address = self._inverter_config.get("ip_address", None)
                 if address:
                     if address.startswith("/dev/tty") or address.startswith("COM"):
                         self._inverter_config["inverter_type"] = "rs485"
