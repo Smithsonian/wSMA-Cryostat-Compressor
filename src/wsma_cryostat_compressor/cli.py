@@ -31,6 +31,7 @@ parser.add_argument("-a", "--address", default=default_compressor,
                     help="The IP address of the compressor, defaults to $WSMACOMPRESSOR")
 parser.add_argument("-i", "--inverter_address", default=default_inverter,
                     help="The IP address of the compressor's inverter, defaults to $WSMAINVERTER")
+parser.add_argument("--debug", type=bool, default=False)
 
 group = parser.add_mutually_exclusive_group()
 group.add_argument("--on", action="store_true", help="Turn the compressor on")
@@ -42,6 +43,8 @@ parser.add_argument("-f", "--freq", default=None, help="Set the inverter frequen
 def main(args=None):
     args = parser.parse_args(args=args)
 
+    if args.debug:
+        print(args)
     # Create the compressor object for communication with the controller
     # If address is 'test', create a dummy compressor for testing purposes.
     if args.address == "test":
