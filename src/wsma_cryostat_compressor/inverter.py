@@ -200,7 +200,7 @@ class Inverter(object):
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
         r = self._read_registers(self._frequency_addr, count=2, unit=1)
-        self._frequency = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT32, word_order='little')
+        self._frequency = self._client.convert_from_registers(r.registers, data_type=self._client.DATATYPE.INT32, word_order='little')
 
     def _get_current(self):
         """Get the output current from the inverter"""
