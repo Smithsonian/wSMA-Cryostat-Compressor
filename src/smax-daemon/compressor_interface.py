@@ -148,7 +148,10 @@ class CompressorInterface:
         if kwargs["frequency"]:
             freq = kwargs["frequency"]
             self.logger.status(f"Setting inverter frequency to {freq} Hz.")
-            self._hardware.set_inverter_freq(freq)
+            try:
+                self._hardware.set_inverter_freq(freq)
+            except ValueError as e:
+                self.logger.warning(f"Can not set inverter frequency to {freq} Hz, with error {e}")
         else:
             self.logger.info(f"No default inverter frequency given.")
             
