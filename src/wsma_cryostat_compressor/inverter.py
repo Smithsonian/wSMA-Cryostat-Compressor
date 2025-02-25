@@ -199,22 +199,22 @@ class Inverter(object):
 
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
-        r = self._read_registers(self._frequency_addr, count=1, unit=1)
+        r = self._read_registers(self._frequency_addr, count=1)
         self._frequency = r.registers[0]
 
     def _get_current(self):
         """Get the output current from the inverter"""
-        r = self._read_registers(self._current_addr, count=1, unit=1)
+        r = self._read_registers(self._current_addr, count=1)
         self._current = r.registers[0]
 
     def _get_voltage(self):
         """Get the output voltage from the inverter"""
-        r = self._read_registers(self._voltage_addr, count=1, unit=1)
+        r = self._read_registers(self._voltage_addr, count=1)
         self._voltage = r.registers[0]
 
     def _get_power(self):
         """Get the output power from the inverter"""
-        r = self._read_registers(self._power_addr, count=1, unit=1)
+        r = self._read_registers(self._power_addr, count=1)
         self._power = r.registers[0]
 
     def _set_frequency(self, freq):
@@ -222,13 +222,13 @@ class Inverter(object):
 
         Args:
             freq: int: Frequency to set in units of 0.01 Hz"""
-        response = self._client.write_register(self._frequency_control_addr, freq, unit=1)
+        response = self._client.write_register(self._frequency_control_addr, freq)
         sleep(self._set_delay)
         self._get_frequency_setting()
         
     def _get_frequency_setting(self):
         """Get the set output frequency of the inverter."""
-        r = self._read_registers(self._frequency_control_addr, count=1, unit=1)
+        r = self._read_registers(self._frequency_control_addr, count=1)
         self._frequency_setting = r.registers[0]
 
     def get_frequency(self):
