@@ -99,6 +99,7 @@ class CompressorInterface:
         
         if "inverter" in self._hardware_config.keys():
             self._inverter_config = self._hardware_config["inverter"]
+            self.logger.debug(f"Got inverter config {self._inverter_config}")
             address = self._inverter_config.get("ip_address", None)
             if "inverter_type" not in self._inverter_config:
                 if address:
