@@ -222,14 +222,14 @@ class Inverter(object):
 
         Args:
             freq: int: Frequency to set in units of 0.01 Hz"""
-        response = self._client.write_register(self._frequency_control_addr, freq, count=1, unit=1)
+        response = self._client.write_register(self._frequency_control_addr, freq, unit=1)
         sleep(self._set_delay)
         self._get_frequency_setting()
         
     def _get_frequency_setting(self):
         """Get the set output frequency of the inverter."""
-        r = self._read_registers(self._frequency_control_addr, count=2, unit=1)
-        self._frequency_setting = self._client.convert_from_registers(r, data_type=self._client.DATATYPE.INT32, word_order='little')
+        r = self._read_registers(self._frequency_control_addr, count=1, unit=1)
+        self._frequency_setting = r.registers[0]
 
     def get_frequency(self):
         """Get current frequency from the inverter and return the value.
