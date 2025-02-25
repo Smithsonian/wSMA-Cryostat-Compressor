@@ -138,7 +138,7 @@ class Inverter(object):
         return self._frequency_setting * 0.01
     
     @frequency_setting.getter
-    def frequency_setting(self, freq):
+    def frequency_setting(self):
         """float: The frequency setting of the inverter in Hz"""
         self.set_frequency(freq)
 
