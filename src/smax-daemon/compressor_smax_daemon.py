@@ -306,7 +306,7 @@ class CompressorSmaxService:
                 
         logged_data = self.hardware.logging_action()
 
-        self.logger.status(f"Received data for {len(logged_data)} keys.")    
+        self.logger.info(f"Received data for {len(logged_data)} keys.")    
         # write values to SMA-X
         # Retry if connection is missing
         try:
