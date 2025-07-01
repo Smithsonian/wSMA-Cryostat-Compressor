@@ -52,8 +52,6 @@ class CompressorInterface:
         
         if config:
             self.configure(config)
-            
-        self.connect_hardware()
         
     def __getattr__(self, name):
         """Override __getattr__ so that we can pass requests for attributes to the
@@ -112,6 +110,7 @@ class CompressorInterface:
             
             
         self.logger.debug(f"Connecting to {self._compressor_ip}:{self._compressor_port}")
+        
         if self._inverter_config:
             self.logger.debug("Inverter {} @ {}:{}".format( \
                                 self._inverter_config["inverter_type"], \
@@ -206,6 +205,7 @@ class CompressorInterface:
                 logged_data['comm_error'] = "None"
             except Exception as e: # Except hardware connection errors
                 self._hardware = None
+                self.logger.status(f'HardwareInterface.logging_action: connection error {e}')
                 logged_data = {'comm_status':'connection error'}
                 logged_data['comm_error'] = repr(e)
         else:
@@ -234,14 +234,15 @@ class CompressorInterface:
                             self.logger.info("Turning compressor off")
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
+                self._hardware = None
                 if self.logger:
-                    self.logger.error(f'Attempt by {message.origin} to set random_range to {message.data} failed with {self._hardware_error}')
+                    self.logger.error(f'Attempt by {message.origin} to set compressor state to {message.data} failed with {self._hardware_error}')
                 
             if self.logger:
                 self.logger.status(f'{message.origin} set compressor state to {message.data}')
         else:
             if self.logger:
-                self.logger.status(f'{message.origin} tried to set system state to {message.data}, but no hardware connected.')
+                self.logger.status(f'{message.origin} tried to set compressor state to {message.data}, but no hardware connected.')
     
     def frequency_control_callback(self, message):
         """Run on a pubsub notification to smax_table:compressor:frequency_control_key"""
@@ -270,6 +271,7 @@ class CompressorInterface:
                         self.logger.info(f"Setting inverter frequency to {data} Hz")
             except Exception as e: # Except hardware errors
                 self._hardware_error = repr(e)
+                self._hardware = None
                 if self.logger:
                     self.logger.error(f'Attempt by {message.origin} to set inverter frequency to {data} Hz failed with {self._hardware_error}')
                 
