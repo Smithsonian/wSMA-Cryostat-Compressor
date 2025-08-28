@@ -11,13 +11,18 @@ from retrying import retry
 import systemd.daemon
 import signal
 
-# Change these based on system setup
+from smax import SmaxRedisClient, SmaxConnectionError, SmaxKeyError, join, normalize_pair
+from pymodbus import ModbusException
+
+# Change this line per application
+from compressor_interface import CompressorInterface as HardwareInterface
+
+# Change these based on system setup and application
 default_smax_config = os.path.expanduser("~smauser/wsma_config/smax_config.json")
 default_config = os.path.expanduser("~smauser/wsma_config/cryostat/compressor/compressor_config.json")
 
-# Change these lines per application
+# Change this line per application
 daemon_name = "compressor_smax_daemon"
-from compressor_interface import CompressorInterface as HardwareInterface
 
 # add a logging level for status output
 def add_logging_level(level_name, level_num, method_name=None):
@@ -72,19 +77,20 @@ def add_logging_level(level_name, level_num, method_name=None):
 add_logging_level('STATUS', logging.WARNING+5)
 
 # Change between testing and production
-logging_level = logging.DEBUG
+logging_level = logging.STATUS
 
 logging.basicConfig(format='%(levelname)s - %(message)s', level=logging_level)
 
 READY = 'READY=1'
 STOPPING = 'STOPPING=1'
 
-from smax import SmaxRedisClient, SmaxConnectionError, SmaxKeyError, join, normalize_pair
-
 def _is_smaxconnectionerror(exception):
     return isinstance(exception, SmaxConnectionError)
 
+def _is_pymodbuserror(exception):
+    return isinstance(exception, ModbusException)
 
+# Change the class name per application
 class CompressorSmaxService:
     def __init__(self, config=default_config, smax_config=default_smax_config):
         """Service object initialization code"""
@@ -113,7 +119,7 @@ class CompressorSmaxService:
         self.delay = 1.0
 
     def _init_logger(self):
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger(daemon_name)
         logger.setLevel(logging_level)
         file_handler = logging.FileHandler(f'{daemon_name.lower()}.log')
         file_handler.setLevel(logging_level)
@@ -171,14 +177,22 @@ class CompressorSmaxService:
         # Start up code
 
         # Create the hardware interface
-        self.hardware = HardwareInterface(config=self._config, logger=self.logger)
-        self.logger.status('Created hardware interface object')
+        try:
+            self.hardware = HardwareInterface(config=self._config, logger=self.logger)
+            self.logger.status('Created hardware interface object')
+        except Exception as e:
+            self.logger.error(f'Hardware connection failed')
         
         # Create the SMA-X interface
         #
-        # There's no point to us starting without a SMA-X connection, so this call will
-        # use retrying, and hang until we get a connection.
+        # There's no point to us starting without a SMA-X connection, so this will use 
         self.connect_to_smax()
+        
+        try:
+            self.connect_to_hardware()
+            self.logger.status('Created hardware interface object')
+        except Exception as e:
+            self.logger.error(f'Hardware connection failed.')
         
         self.initialize_hardware()
 
@@ -203,7 +217,19 @@ class CompressorSmaxService:
             init_kwargs[kw] = value
         
         self.hardware.initialize_hardware(init_kwargs)
-        
+
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=_is_pymodbuserror)
+    def connect_to_hardware(self):
+        """Create a connection to hardware.  Retry this if the connection fails"""
+        try:
+            self.hardware.connect_hardware()
+            self.logger.status(f'Connected to hardware')
+        except Exception as e:
+            self.logger.error(f'Could not connect to hardware: {e}')
+            self.smax_client.smax_share(join(self.table, self.key), 'comm_status', 'connection error')
+            self.smax_client.smax_share(join(self.table, self.key), 'comm_error', repr(e))
+            raise e
+
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000, retry_on_exception=_is_smaxconnectionerror)
     def connect_to_smax(self):
         """creates a connection to SMA-X that we have to close properly when the
@@ -280,7 +306,7 @@ class CompressorSmaxService:
                 
         logged_data = self.hardware.logging_action()
 
-        self.logger.status(f"Received data for {len(logged_data)} keys.")    
+        self.logger.info(f"Received data for {len(logged_data)} keys.")    
         # write values to SMA-X
         # Retry if connection is missing
         try:
@@ -323,5 +349,6 @@ class CompressorSmaxService:
 
 if __name__ == '__main__':
     # Do start up stuff
+    # Change this line per application
     service = CompressorSmaxService()
     service.start()
